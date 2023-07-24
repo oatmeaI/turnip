@@ -1,0 +1,6 @@
+__pycache__/
+pyproject.toml
+*.pickle
+*.json
+.mypy_cache
+deploy.sh
