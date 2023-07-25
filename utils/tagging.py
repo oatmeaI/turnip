@@ -236,6 +236,8 @@ def setTrackCountTag(track: str, count: int) -> None:
 
 def getTrackTime(track: os.DirEntry) -> int:
     if track.path not in tagCache or "time" not in tagCache[track.path]:
+        if track.path not in tagCache:
+            tagCache[track.path] = {}
         f = mutagen.File(track.path)
         tagCache[track.path]["time"] = f.info.length
     return tagCache[track.path]["time"]

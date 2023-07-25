@@ -68,7 +68,7 @@ def process(rootDir) -> int:
         return (
             promptHeader("artistTagConflicts", index, count)
             + "\n"
-            + "Conflicted album artist tags for artist at"
+            + "Conflicted album artist tags for artist at "
             + bold(stripRootPath(issue["entry"].path))
         )
 

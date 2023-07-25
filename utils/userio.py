@@ -1,5 +1,11 @@
-import re
-from internal_types import Issue, Option
+import os
+from internal_types import Option
+
+
+def formatCommandName(file: str) -> str:
+    commandName = os.path.basename(file).replace(".py", "")
+    formatted = purple(f"[{commandName}]")
+    return formatted
 
 
 def confirm(prompt: str, default: bool) -> bool:
@@ -75,13 +81,4 @@ def blue(text: str) -> str:
 
 
 def promptHeader(commandName: str, index: int, count: int) -> str:
-    return (
-        "\n"
-        + "\n"
-        + purple("[" + commandName + "]:")
-        + "\n"
-        + "Progress: "
-        + str(index)
-        + "/"
-        + str(count)
-    )
+    return f"\n{formatCommandName(commandName)} - {str(index)}/{str(count)}"

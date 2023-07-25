@@ -177,7 +177,7 @@ def buildOptions(
     if issue["delta"] and not skipIssueValues:
         options.append(
             {
-                "key": "2",
+                "key": str(len(options) + 1),
                 "value": issue["delta"],
                 "display": green(stripRootPath(issue["delta"])),
             }
@@ -185,7 +185,7 @@ def buildOptions(
 
     suggestions = suggest(issue)
 
-    i = 3
+    i = len(options) + 1
     end = max(len(suggestions) - 1, suggestionLimit)
     for suggestion in suggestions[0:end]:
         suggestion["key"] = str(i)

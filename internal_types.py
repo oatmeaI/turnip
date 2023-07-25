@@ -20,7 +20,6 @@ Ignore = TypedDict("Ignore", {})
 TrackNameParts = TypedDict(
     "TrackNameParts",
     {
-        "path": str,
         "title": str,
         "number": Optional[str],
         "extension": str,

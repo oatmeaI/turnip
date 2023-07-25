@@ -26,16 +26,14 @@ from utils.tagging import writeTagCache
 
 def clean(rootDir):
     count = 0
-    print("\n\nChecking file structure...")
+
     folderStructure.verify(rootDir)
     count = emptyFolders.process(rootDir)
 
-    print("\n\nLooking for duplicates...")
-    count += artistDuplicates.process(rootDir)
-    count += albumDuplicates.process(rootDir)
-    count += trackDuplicates.process(rootDir)
+    count += artistDuplicates.ArtistDuplicates().process()
+    count += albumDuplicates.AlbumDuplicates().process()
+    count += trackDuplicates.TrackDuplicates().process()
 
-    print("\n\nChecking metadata...")
     count += artistTagConflicts.process(rootDir)
     count += artistTagFolderConflicts.process(rootDir)
     count += albumTagConflicts.process(rootDir)
@@ -51,13 +49,11 @@ def clean(rootDir):
     count += featInAlbum.process(rootDir)
     count += replace.process(rootDir)
 
-    print("\n\nChecking track counts...")
     count += countTagConflicts.process(rootDir)
     count += missingTrackCounts.process(rootDir)
     count += conflictedTrackNumbers.process(rootDir)
     count += missingTrackNumbers.process(rootDir)
 
-    print("\n\nLooking for missing tracks...")
     count += missingTracks.process(rootDir)
 
     print(str(count) + " issues resolved")
@@ -69,7 +65,7 @@ commands = {
     "removeEmptyFolders": emptyFolders.process,
     "trackDuplicates": trackDuplicates.process,
     "albumDuplicates": albumDuplicates.process,
-    "artistDuplicates": artistDuplicates.process,
+    "artistDuplicates": artistDuplicates.ArtistDuplicates().process,
     "artistTagConflicts": artistTagConflicts.process,
     "artistTagFolderConflicts": artistTagFolderConflicts.process,
     "albumTagConflicts": albumTagConflicts.process,

@@ -17,7 +17,7 @@ def findConflictedAlbumFolders(rootDir: str) -> list[Issue]:
             if not albumTag:
                 continue
             scrubbedTag = albumTag.replace("/", "_")
-            parts = splitFileName(album.path[album.path.rindex("/") + 1:])
+            parts = splitFileName(album.path)
 
             if not parts:
                 return found
@@ -77,6 +77,8 @@ def process(rootDir: str) -> int:
         if albumName != good:
             newDir = setAlbumInPath(album, good)
 
+            if not newDir:
+                return
             if not os.path.exists(newDir):
                 os.mkdir(newDir)
             moveDirFiles(album.path, newDir)

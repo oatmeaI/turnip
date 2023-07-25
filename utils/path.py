@@ -8,7 +8,8 @@ import os
 
 
 def stripRootPath(string: str):
-    return re.sub(rootDir, "", string)[1:]
+    stripped = re.sub(rootDir, "", string)
+    return stripped[1:] if stripped.startswith("/") else stripped
 
 
 def sanitizePathSegment(segment: str) -> str:
@@ -68,7 +69,6 @@ def unsanitize(pathValue: str, tagValue: str):
 def splitFileName(fullPath: str) -> Optional[TrackNameParts]:
     # Setup
     lastSlashIndex = fullPath.rindex("/")
-    parentPath = fullPath[0:lastSlashIndex]
     fileName = fullPath[lastSlashIndex + 1:]
 
     # This is kinda janky
@@ -88,7 +88,7 @@ def splitFileName(fullPath: str) -> Optional[TrackNameParts]:
     # Split year out of album folder name
     if pathType > 1:
         fullAlbum = parentPathParts[1]
-        albumMatches = re.match(r"(.*)\s\(([12]\d\d\d\))", fullAlbum)
+        albumMatches = re.match(r"(.*)\s\(([12]\d\d\d)\)", fullAlbum)
         if not albumMatches:
             pathAlbum = fullAlbum
         else:
@@ -117,7 +117,6 @@ def splitFileName(fullPath: str) -> Optional[TrackNameParts]:
     title = unsanitize(pathTitle, titleTag) or ""
 
     return {
-        "path": parentPath,
         "artist": artist,
         "album": album,
         "year": year,
@@ -134,9 +133,22 @@ def buildFileName(parts: TrackNameParts) -> str:
         number = "0" + str(int(number))
 
     fileName = number + " - " + parts["title"] + "." + parts["extension"]
-    strippedFilename = sanitizePathSegment(fileName)
+    strippedFilename = sanitizePathSegment(fileName) if parts["title"] else ""
+    albumPath = (
+        parts["album"] + " (" + parts["year"] +
+        ")" if parts["year"] else parts["album"]
+    )
 
-    return joinPath([parts["path"], strippedFilename])
+    path = joinPath(
+        [
+            rootDir,
+            sanitizePathSegment(parts["artist"]),
+            sanitizePathSegment(albumPath),
+            strippedFilename,
+        ]
+    )
+
+    return path[:-1] if path.endswith("/") else path
 
 
 def renameFile(file: os.DirEntry, destination: str):

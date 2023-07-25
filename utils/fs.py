@@ -1,5 +1,7 @@
 import os
+import re
 import shutil
+from utils.constants import rootDir
 from typing import Union
 
 
@@ -32,8 +34,26 @@ def moveFileWithFallback(fromDir: str, toDir: str) -> None:
     return
 
 
+# TODO - this is duplicated because of a circular import; need to clean all these up
+def stripRootPath(string: str):
+    stripped = re.sub(rootDir, "", string)
+    return stripped[1:] if stripped.startswith("/") else stripped
+
+
 def moveDirFiles(fromDir: str, toDir: str) -> None:
-    for fileName in filter(lambda d: not d.startswith("."), os.listdir(fromDir)):
+    # TODO - is there a way to do this with less boilerplate?
+    table = Columns()
+    rows = list(filter(lambda d: not d.startswith("."), os.listdir(fromDir)))
+
+    def columnA(row):
+        return stripRootPath(fromDir + "/" + row)
+
+    def columnB(row):
+        return stripRootPath(toDir + "/" + row)
+
+    table.setup(rows, columnA, columnB)
+
+    for fileName in rows:
         source = fromDir + "/" + fileName
         destination = toDir + "/" + fileName
         i = 1
@@ -47,14 +67,45 @@ def moveDirFiles(fromDir: str, toDir: str) -> None:
             i += 1
         try:
             shutil.move(source, destination)
-            print(source, " -> ", destination)
+            table.printRow(fileName)
         except Exception as e:
             print("Couldn't move " + source + " to " + destination, e)
 
 
+# TODO - do we ever need more than two columns?
+# TODO - move to io
+class Columns:
+    def setup(self, rows, columnA, columnB):
+        longest = 0
+        for row in rows:
+            columnALength = len(columnA(row))
+            columnBLength = len(columnB(row))
+            totalLength = columnBLength + columnALength
+
+            if totalLength > longest:
+                longest = totalLength
+
+        if longest % 2 > 0:
+            longest += 1
+
+        self.longest = longest
+        self.columnA = columnA
+        self.columnB = columnB
+
+    def printRow(self, row):
+        columnA = self.columnA(row)
+        columnB = self.columnB(row)
+
+        diff = self.longest - len(columnA + columnB)
+
+        spacer = "".join([" " for x in range(int(diff / 2))])
+        output = "".join([columnA, spacer, "  ->  ", columnB])
+
+        print(output)
+
+
 def rmDir(dir: os.DirEntry) -> None:
     try:
-        print("Trashing " + dir.path)
         shutil.move(dir, os.path.expanduser("~/turnip_data/trash/" + dir.name))
     except Exception as e:
         print("Couldn't remove " + dir.name + ": ", e)

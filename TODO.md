@@ -4,10 +4,11 @@
 
 ## Bugs
 
+-   ! titleTagFileConflicts seems broken - too many issues
+-   ! conflictedTrackNumbers throws error
 -   ! Tidal search isn't always giving results that it should - also non-english text breaks
 -   ! Deal with multi-disc track numbers
 -   ! Strip trailing spaces everywhere
--   ! Significant slowdown after path refactoring
 -   yearTagFolderConflicts: remove "None"s from options
 -   util.py:152: dedupe options in buildOptions / from suggestions
 -   tagging.py:141: Might need to transform tag values before setting into cache
@@ -22,7 +23,7 @@
 
 ## Refactoring
 
--   One method for parsing ALL data out of file path, deprecate others
+-   Move Command class to central location, migrate everything to use the Command class
 -   featInTitle: clean up callback method, use infinite corrections input method
 -   featInAlbumArtist: clean up callback method, use infinite corrections input method
 -   featInAlbumArtist:82: helper for building album paths
@@ -38,9 +39,12 @@
 
 ## Incremental Features
 
+-   ! skipSimilar in duplicate tracks will skip other tracks from the same 2 albums (for dealing with greatest hits, etc)
 -   ! conflictedTrackNumbers: this command is kind of useless, rework entirely
 -   ! add option to update track count in fixMissingTracks
 -   ! only rip missing tracks
+-   strict duplicate track mode that only searches within artist folder for better speed
+-   findMissingYear
 -   Add "count" command that gives statistics and issue counts
 -   [listInAlbumArtist / listInX] - detect 'and' '&' ',' in artist tags (build listInX commands)
 -   Always print what we're doing in CB

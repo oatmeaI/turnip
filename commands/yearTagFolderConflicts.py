@@ -15,7 +15,7 @@ def findConflictedAlbumYears(rootDir: str) -> list[Issue]:
     def cb(artist: os.DirEntry, album: os.DirEntry) -> list[Issue]:
         found: list[Issue] = []
         tracks = loadTracks(album.path)
-        parts = splitFileName(album.name)
+        parts = splitFileName(album.path)
 
         if not parts:
             return []
@@ -28,9 +28,9 @@ def findConflictedAlbumYears(rootDir: str) -> list[Issue]:
                 "data": None,
                 "entry": album,
                 "original": str(foundYear),
-                "delta": str(yearTag),
+                "delta": str(yearTag) if yearTag else "",
             }
-            if yearTag != foundYear and issue not in found:
+            if (yearTag or foundYear) and yearTag != foundYear and issue not in found:
                 found.append(issue)
         return found
 
@@ -74,7 +74,8 @@ def process(rootDir: str) -> int:
             yearTag = getYearTag(track.path)
             if yearTag != good:
                 setYearTag(track.path, good)
-        parts = splitFileName(album.name)
+                print(track.name + " year: " + str(yearTag) + " -> ", str(good))
+        parts = splitFileName(album.path)
 
         if not parts:
             return
@@ -82,6 +83,9 @@ def process(rootDir: str) -> int:
         albumYear = parts["year"]
         if albumYear != str(good):
             newName = setYearInPath(album, good)
+            if not newName:
+                return
+            print(album.name + " -> " + newName)
             renameFile(album, newName)
 
     def prompt(issue: Issue, index: int, count: int) -> str:
