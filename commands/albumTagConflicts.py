@@ -1,10 +1,9 @@
 from utils.fs import loadTracks
 from utils.tagging import getAlbumTag, setAlbumTag
 from utils.util import loopAlbums, newFix
-from typing import Optional
 from internal_types import Issue, Option
 from utils.userio import promptHeader, bold
-from utils.path import parseTrackPath, stripRootPath
+from utils.path import stripRootPath, splitFileName
 from tidal import tidal
 import os
 
@@ -37,15 +36,16 @@ def process(rootDir) -> int:
 
     def suggest(issue: Issue) -> list[Option]:
         entry = issue["entry"]
-        split = parseTrackPath(entry.path, rootDir)
+        split = splitFileName(entry.path)
 
-        results = tidal.searchAlbum(split["album"]["name"], split["artist"])
+        if not split:
+            return []
+
+        results = tidal.searchAlbum(split["album"], split["artist"])
         suggestions: list[Option] = []
-        i = 3
         for result in results:
             suggestions.append(
-                {"key": str(i), "value": result.name, "display": None})
-            i += 1
+                {"key": "NONE", "value": result.name, "display": None})
         return suggestions
 
     def callback(good: str, issue: Issue) -> None:
@@ -58,11 +58,10 @@ def process(rootDir) -> int:
             promptHeader("albumTagConflicts", index, count)
             + "\n"
             + "Conflicted album tags for album at "
-            + bold(stripRootPath(issue["entry"].path, rootDir))
+            + bold(stripRootPath(issue["entry"].path))
         )
 
     return newFix(
-        rootDir=rootDir,
         issues=conflicts,
         callback=callback,
         prompt=prompt,

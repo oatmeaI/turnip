@@ -1,75 +1,22 @@
 from internal_types import TrackNameParts
 from utils.fs import ensureDirExists
-from utils.tagging import getTitleTag
+from utils.tagging import getTitleTag, getAlbumTag, getAlbumArtistTag
 from typing import Optional
+from utils.constants import rootDir
 import re
 import os
 
 
-def stripRootPath(string: str, rootDir: str):
-    return re.sub(rootDir + "/", "", string)
+def stripRootPath(string: str):
+    return re.sub(rootDir, "", string)[1:]
 
 
-# TODO - deprecate; make splitFileName do all
-def getArtistFromPath(path: str, rootDir: str):
-    albumName = getAlbumNameFromFolder(path[path.rindex("/") + 1:])
-    raw = stripRootPath(path, rootDir)
-    artistName = raw[: raw.index("/")]
-    return {"album": albumName, "artist": artistName}
-
-
-# TODO - deprecate; make splitFileName do all
-def parseTrackPath(path: str, rootDir: str):
-    raw = stripRootPath(path, rootDir)
-    parts = raw.split("/")
-    artist = parts[0]
-    album = splitAlbumName(parts[1]) if len(parts) > 1 else None
-    track = splitTrackName(parts[2]) if len(parts) > 2 else None
-
-    return {"artist": artist, "album": album, "track": track}
-
-
-# TODO - deprecate; make splitFileName do all
-def getYearFromFolder(path: str) -> Optional[str]:
-    matches = re.match(r".* \((\d\d\d\d)\)", path)
-    if not matches:
-        return None
-    return matches.group(1)
-
-
-# TODO - deprecate; make splitFileName do all
-def getAlbumNameFromFolder(path: str) -> str:
-    return re.sub(r"\s\([12]\d\d\d\)", "", path)
-
-
-# TODO - deprecate; make splitFileName do all
-def splitAlbumName(path: str):
-    matches = re.match(r"(.*)\s\(([12]\d\d\d\))", path)
-    if not matches:
-        return {"name": path, "year": None}
-    return {"name": matches.group(1), "year": matches.group(2)}
-
-
-# TODO - deprecate; make splitFileName do all
-def splitTrackName(path: str):
-    matches = re.match(r"(\d*)[ -]{0,3}(.*)\.(.*)", path)
-
-    if not matches:
-        return None
-
-    return {
-        "name": matches.group(2),
-        "number": matches.group(1),
-        "extension": matches.group(3),
-    }
-
-
-# TODO - more sanitization, also maybe a map to go back to unsanitized?
-# NOTE - can only do segments (b/c it escapes slashes)
 def sanitizePathSegment(segment: str) -> str:
     replacement = "_"
+
     if segment.startswith("."):
         segment = replacement + segment[1:]
+
     return segment.replace("/", replacement)[:254]
 
 
@@ -79,68 +26,117 @@ def joinPath(parts: list[str]) -> str:
     return path
 
 
-def createArtistDir(rootDir: str, artistName: str) -> str:
+def createArtistDir(artistName: str) -> str:
     sanitizedArtistName = sanitizePathSegment(artistName)
     path = joinPath([rootDir, sanitizedArtistName])
     ensureDirExists(path)
     return path
 
 
-def setTitleInPath(track: os.DirEntry, title: str) -> str:
+def setAlbumInPath(path: os.DirEntry, album: str) -> Optional[str]:
+    return setValueInPath(path, "album", album)
+
+
+def setYearInPath(path: os.DirEntry, year: str) -> Optional[str]:
+    return setValueInPath(path, "year", year)
+
+
+def setArtistInPath(path: os.DirEntry, artist: str) -> Optional[str]:
+    return setValueInPath(path, "artist", artist)
+
+
+def setTitleInPath(track: os.DirEntry, title: str) -> Optional[str]:
+    return setValueInPath(track, "title", title)
+
+
+def setValueInPath(track: os.DirEntry, position: str, value: str) -> Optional[str]:
     parts = splitFileName(track.path)
+
     if not parts:
         return None
-    return buildFileName(
-        dir=parts["dir"],
-        trackNumber=int(parts["number"]),
-        name=title,
-        extension=parts["extension"],
-    )
+
+    parts[position] = value  # TODO - typing
+
+    return buildFileName(parts)
 
 
-# TODO - make this take os.DirEntry
-def splitFileName(track: str) -> Optional[TrackNameParts]:
-    matches = re.match(r"(\d*)[ -]{0,3}(.*)\.(.*)",
-                       track[track.rindex("/") + 1:])
-    dir = track[0: track.rindex("/")]
+def unsanitize(pathValue: str, tagValue: str):
+    sanitizedTagValue = sanitizePathSegment(tagValue)
+    return tagValue if sanitizedTagValue == pathValue else pathValue
 
-    if not matches:
-        return None
 
-    titleTag = getTitleTag(track)
-    sanitizedTag = sanitizePathSegment(titleTag)
-    fileName = matches.group(2)
+def splitFileName(fullPath: str) -> Optional[TrackNameParts]:
+    # Setup
+    lastSlashIndex = fullPath.rindex("/")
+    parentPath = fullPath[0:lastSlashIndex]
+    fileName = fullPath[lastSlashIndex + 1:]
 
-    # Abstract the sanitization here so that we don't have to worry about it when doing comparisons elsewhere
-    # TODO - do the same for album
-    name = titleTag if sanitizedTag == fileName else fileName
+    # This is kinda janky
+    # Get info from file path
+    parentSubPath = stripRootPath(fullPath)
+    parentPathParts = parentSubPath.split("/")
+    pathType = len(parentPathParts)
+
+    pathArtist = parentPathParts[0]
+    pathAlbum = ""
+    pathTitle = ""
+
+    year = ""
+    number = ""
+    extension = ""
+
+    # Split year out of album folder name
+    if pathType > 1:
+        fullAlbum = parentPathParts[1]
+        albumMatches = re.match(r"(.*)\s\(([12]\d\d\d\))", fullAlbum)
+        if not albumMatches:
+            pathAlbum = fullAlbum
+        else:
+            pathAlbum = albumMatches.group(1)
+            year = albumMatches.group(2)
+
+    if pathType > 2:
+        # Get info from filename
+        matches = re.match(r"(\d*)[ -]{0,3}(.*)\.(.*)", fileName)
+        if not matches:
+            return None
+        title = matches.group(2)
+        number = matches.group(1)
+        extension = matches.group(3)
+
+    # Unsanitize the stuff that comes from file paths
+    titleTag = ""
+    albumTag = ""
+    artistTag = ""
+    if os.path.exists(fullPath) and pathType > 2:
+        titleTag = getTitleTag(fullPath) or ""
+        albumTag = getAlbumTag(fullPath) or ""
+        artistTag = getAlbumArtistTag(fullPath) or ""
+    album = unsanitize(pathAlbum, albumTag)
+    artist = unsanitize(pathArtist, artistTag)
+    title = unsanitize(pathTitle, titleTag) or ""
 
     return {
-        "dir": dir,
-        "name": name,
-        "number": matches.group(1),
-        "extension": matches.group(3),
+        "path": parentPath,
+        "artist": artist,
+        "album": album,
+        "year": year,
+        "number": number,
+        "title": title,
+        "extension": extension,
     }
 
 
-def buildFileNameFromParts(parts):
-    return buildFileName(
-        dir=parts["dir"],
-        trackNumber=int(parts["number"]),
-        name=parts["name"],
-        extension=parts["extension"],
-    )
+def buildFileName(parts: TrackNameParts) -> str:
+    number = str(parts["number"]) if parts["number"] else "00"
 
-
-def buildFileName(dir: str, trackNumber: int, name: str, extension: str):
-    number = str(trackNumber) if trackNumber else "00"
-
-    if trackNumber and int(trackNumber) < 10:
+    if parts["number"] and int(parts["number"]) < 10:
         number = "0" + str(int(number))
 
-    fileName = number + " - " + name + "." + extension
+    fileName = number + " - " + parts["title"] + "." + parts["extension"]
     strippedFilename = sanitizePathSegment(fileName)
-    return dir + "/" + strippedFilename
+
+    return joinPath([parts["path"], strippedFilename])
 
 
 def renameFile(file: os.DirEntry, destination: str):
@@ -150,35 +146,13 @@ def renameFile(file: os.DirEntry, destination: str):
     i = 1
     parts = splitFileName(destination)
 
+    if not parts:
+        # TODO - throw error tbh
+        return
+
     while os.path.exists(destination):
-        parts["name"] = parts["name"] + " " + str(i)
-        destination = buildFileNameFromParts(parts)
+        parts["title"] = parts["title"] + " " + str(i)
+        destination = buildFileName(parts)
         i += 1
 
     os.rename(file, destination)
-
-
-def updateFileName(track: str, newName: str):
-    parts = splitFileName(track)
-    if not parts:
-        print("Error while parsing", track)
-        return
-
-    fileName = parts["name"]
-    albumDir = parts["dir"]
-    trackNumber = int(parts["number"]) if parts["number"] else 0
-    extension = parts["extension"]
-
-    if newName == fileName:
-        print("No diff found, skipping")
-        return
-
-    destination = buildFileName(albumDir, trackNumber, newName, extension)
-    i = 1
-    while os.path.exists(destination):
-        destination = buildFileName(
-            albumDir, trackNumber, newName + " " + str(i), extension
-        )
-        i += 1
-
-    os.rename(track, destination)

@@ -1,12 +1,12 @@
 import os
 from internal_types import Issue, Option
 from utils.util import newFix, loopTracks
-from utils.path import splitFileName, buildFileName, parseTrackPath, stripRootPath
+from utils.path import splitFileName, buildFileName, stripRootPath
 from utils.tagging import (
     getTrackNumberTag,
     setTrackNumberTag,
 )
-from utils.userio import promptHeader, bold, blue
+from utils.userio import promptHeader, bold
 from tidal import tidal
 
 
@@ -14,7 +14,10 @@ def findMissingTrackNumber(rootDir: str) -> list[Issue]:
     def cb(artist: os.DirEntry, album: os.DirEntry, track: os.DirEntry) -> list[Issue]:
         found: list[Issue] = []
         tagNumber = getTrackNumberTag(track.path)
-        fileNumber = parseTrackPath(track.path, rootDir)["track"]["number"]
+        parts = splitFileName(track.path)
+        if not parts:
+            return []
+        fileNumber = parts["number"]
         if not tagNumber and not fileNumber:
             found.append(
                 {
@@ -35,11 +38,13 @@ def process(rootDir: str) -> int:
 
     def suggest(issue: Issue) -> list[Option]:
         entry = issue["entry"]
-        split = parseTrackPath(entry.path, rootDir)
+        split = splitFileName(entry.path)
+
+        if not split:
+            return []
 
         results = tidal.searchTrack(
-            split["track"]["name"], split["album"]["name"], split["artist"]
-        )
+            split["title"], split["album"], split["artist"])
         suggestions: list[Option] = []
         for result in results:
             suggestions.append(
@@ -67,9 +72,8 @@ def process(rootDir: str) -> int:
             parts = splitFileName(track.path)
             if not parts:
                 return
-            newName = buildFileName(
-                parts["dir"], int(good), parts["name"], parts["extension"]
-            )
+            parts["number"] = good
+            newName = buildFileName(parts)
             os.rename(track, newName)
 
     def prompt(issue: Issue, index: int, count: int) -> str:
@@ -77,11 +81,10 @@ def process(rootDir: str) -> int:
             promptHeader("missingTrackNumbers", index, count)
             + "\n"
             + "No track number for "
-            + bold(stripRootPath(issue["entry"].path, rootDir))
+            + bold(stripRootPath(issue["entry"].path))
         )
 
     return newFix(
-        rootDir=rootDir,
         issues=conflicts,
         callback=cb,
         prompt=prompt,

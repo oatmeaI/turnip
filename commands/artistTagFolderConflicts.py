@@ -34,7 +34,9 @@ def process(rootDir: str) -> int:
         entry = issue["entry"]
         results = tidal.searchAlbum(
             entry.name,
-            stripRootPath(entry.path, rootDir)[: entry.path.rindex("/") - 1],
+            stripRootPath(entry.path)[
+                : entry.path.rindex("/") - 1
+            ],  # TODO - use filename methods here instead
         )
         suggestions = []
         for result in results:
@@ -63,7 +65,7 @@ def process(rootDir: str) -> int:
                     setAlbumArtistTag(track.path, good)
 
         if artistName != good:
-            newDir = createArtistDir(rootDir=rootDir, artistName=good)
+            newDir = createArtistDir(artistName=good)
             moveDirFiles(artist.path, newDir)
 
     def prompt(issue: Issue, index: int, count: int):
@@ -74,6 +76,4 @@ def process(rootDir: str) -> int:
             + bold(issue["entry"].name)
         )
 
-    return newFix(
-        rootDir=rootDir, issues=conflicts, callback=cb, prompt=prompt, allowEdit=True
-    )
+    return newFix(issues=conflicts, callback=cb, prompt=prompt, allowEdit=True)

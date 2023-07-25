@@ -55,7 +55,7 @@ def moveDirFiles(fromDir: str, toDir: str) -> None:
 def rmDir(dir: os.DirEntry) -> None:
     try:
         print("Trashing " + dir.path)
-        shutil.move(dir, os.path.expanduser("~/turnip/trash/" + dir.name))
+        shutil.move(dir, os.path.expanduser("~/turnip_data/trash/" + dir.name))
     except Exception as e:
         print("Couldn't remove " + dir.name + ": ", e)
 

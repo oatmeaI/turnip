@@ -4,8 +4,7 @@ from utils.util import loopAlbums, newFix
 from utils.fs import loadTracks, moveDirFiles
 from utils.tagging import getAlbumTag, setAlbumTag
 from utils.userio import promptHeader, bold, blue
-from utils.path import getAlbumNameFromFolder, getYearFromFolder
-from utils.path import parseTrackPath, stripRootPath
+from utils.path import splitFileName, stripRootPath, setAlbumInPath
 from tidal import tidal
 
 
@@ -18,15 +17,18 @@ def findConflictedAlbumFolders(rootDir: str) -> list[Issue]:
             if not albumTag:
                 continue
             scrubbedTag = albumTag.replace("/", "_")
-            albumName = getAlbumNameFromFolder(
-                album.path[album.path.rindex("/") + 1:])
+            parts = splitFileName(album.path[album.path.rindex("/") + 1:])
+
+            if not parts:
+                return found
+
             issue: Issue = {
                 "data": None,
                 "entry": album,
-                "original": albumName,
+                "original": parts["album"],
                 "delta": albumTag,
             }
-            if scrubbedTag != albumName and issue not in found:
+            if scrubbedTag != parts["album"] and issue not in found:
                 found.append(issue)
         return found
 
@@ -38,26 +40,33 @@ def process(rootDir: str) -> int:
 
     def suggest(issue: Issue) -> list[Option]:
         entry = issue["entry"]
-        split = parseTrackPath(entry.path, rootDir)
+        split = splitFileName(entry.path)
 
-        results = tidal.searchAlbum(split["album"]["name"], split["artist"])
+        if not split:
+            return []
+
+        results = tidal.searchAlbum(split["album"], split["artist"])
         suggestions: list[Option] = []
-        i = 3
         for result in results:
             suggestions.append(
                 {
-                    "key": str(i),
+                    "key": "NONE",
                     "display": blue(result.name + " by " + result.artist.name),
                     "value": result.name,
                 }
             )
-            i += 1
         return suggestions
 
     def cb(good, issue: Issue) -> None:
         album = issue["entry"]
-        albumName = getAlbumNameFromFolder(album.name)
-        albumYear = getYearFromFolder(album.name)
+        parts = splitFileName(
+            album.path
+        )  # TODO - not sure if this will work without a filename on the end
+
+        if not parts:
+            return
+
+        albumName = parts["album"]
         tracks = loadTracks(album.path)
 
         for track in tracks:
@@ -66,16 +75,8 @@ def process(rootDir: str) -> int:
                 setAlbumTag(track.path, good)
 
         if albumName != good:
-            path = stripRootPath(album.path, rootDir)
-            artist = path[: path.index("/")]
-            newDir = (
-                rootDir
-                + "/"
-                + artist
-                + "/"
-                + good.replace("/", "_")
-                + ((" (" + albumYear + ")") if albumYear else "")
-            )
+            newDir = setAlbumInPath(album, good)
+
             if not os.path.exists(newDir):
                 os.mkdir(newDir)
             moveDirFiles(album.path, newDir)
@@ -85,11 +86,10 @@ def process(rootDir: str) -> int:
             promptHeader("albumTagFolderConflicts", index, count)
             + "\n"
             + "Album folder / tag mismatch for album at "
-            + bold(stripRootPath(issue["entry"].path, rootDir))
+            + bold(stripRootPath(issue["entry"].path))
         )
 
     return newFix(
-        rootDir=rootDir,
         issues=conflicts,
         callback=cb,
         prompt=prompt,

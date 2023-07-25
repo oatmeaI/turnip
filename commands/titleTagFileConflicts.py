@@ -1,11 +1,11 @@
-import os
+from titlecase import titlecase
 from internal_types import Issue, Option
 from utils.util import loopTracks, newFix
 from utils.tagging import getTitleTag, setTitleTag
-from utils.userio import promptHeader, bold, blue
-from utils.path import buildFileName, splitFileName, stripRootPath, parseTrackPath
+from utils.userio import promptHeader, bold
+from utils.path import buildFileName, splitFileName, stripRootPath, renameFile
 from tidal import tidal
-from titlecase import titlecase
+import os
 
 
 def findConflictedTrackNames(rootDir: str) -> list[Issue]:
@@ -14,7 +14,7 @@ def findConflictedTrackNames(rootDir: str) -> list[Issue]:
         parts = splitFileName(track.path)
         if not parts:
             return found
-        fileName = parts["name"]
+        fileName = parts["title"]
         tagName = getTitleTag(track.path)
 
         if fileName != tagName:
@@ -39,11 +39,11 @@ def process(rootDir: str) -> int:
 
     def suggest(issue: Issue) -> list[Option]:
         entry = issue["entry"]
-        split = parseTrackPath(entry.path, rootDir)
+        split = splitFileName(entry.path)
         if not split:
             return []
-        trackName = split["track"]["name"] if split["track"] else ""
-        albumName = split["album"]["name"] if split["album"] else ""
+        trackName = split["title"] if split["title"] else ""
+        albumName = split["album"] if split["album"] else ""
         results = tidal.searchTrack(trackName, albumName, split["artist"])
         suggestions: list[Option] = []
         for result in results:
@@ -82,34 +82,24 @@ def process(rootDir: str) -> int:
         if not parts:
             print("Error while parsing", track)
             return
-        fileName = parts["name"]
-        albumDir = parts["dir"]
-        trackNumber = int(parts["number"]) if parts["number"] else 0
-        extension = parts["extension"]
+        fileName = parts["title"]
 
         if getTitleTag(track.path) != good:
             setTitleTag(track.path, good)
         if fileName != good:
-            destination = buildFileName(albumDir, trackNumber, good, extension)
-            i = 1
-            while os.path.exists(destination):
-                destination = buildFileName(
-                    albumDir, trackNumber, good + " " + str(i), extension
-                )
-                i += 1
-
-            os.rename(track, destination)
+            parts["title"] = good
+            destination = buildFileName(parts)
+            renameFile(track, destination)
 
     def prompt(issue: Issue, index: int, count: int) -> str:
         return (
             promptHeader("titleTagFileConflicts", index, count)
             + "\n"
             + "Conflict between track name and file name for: "
-            + bold(stripRootPath(issue["entry"].path, rootDir))
+            + bold(stripRootPath(issue["entry"].path))
         )
 
     return newFix(
-        rootDir=rootDir,
         issues=conflicts,
         check=check,
         callback=cb,

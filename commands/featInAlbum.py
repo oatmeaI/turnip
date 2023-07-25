@@ -5,14 +5,11 @@ from utils.userio import bold, promptHeader, confirm
 from utils.constants import featPattern
 from utils.util import newFix, loopTracks, getInput
 from utils.path import (
-    splitFileName,
     stripRootPath,
     setTitleInPath,
     renameFile,
 )
 from utils.tagging import (
-    getTitleTag,
-    setTitleTag,
     getArtistTag,
     setArtistTag,
     getAlbumTag,
@@ -24,7 +21,7 @@ def findFeatInAlbum(rootDir: str) -> list[Issue]:
     def cb(artist: os.DirEntry, album: os.DirEntry, track: os.DirEntry) -> list[Issue]:
         found: list[Issue] = []
 
-        tagName = getAlbumTag(track.path)
+        tagName = getAlbumTag(track.path) or ""
         matches = re.match(featPattern, tagName)
 
         if not matches:
@@ -75,7 +72,7 @@ def process(rootDir: str) -> int:
             else:
                 setArtistTag(track.path, newArtistTag)
 
-        destination = setTitleInPath(track=track, title=good)
+        destination = setTitleInPath(track=track, title=good) or ""
         renameFile(file=track, destination=destination)
 
     def prompt(issue: Issue, index: int, count: int) -> str:
@@ -83,7 +80,7 @@ def process(rootDir: str) -> int:
             promptHeader("featInAlbum", index, count)
             + "\n"
             + "Featured artist found in album tag at: "
-            + bold(stripRootPath(issue["entry"].path, rootDir))
+            + bold(stripRootPath(issue["entry"].path))
         )
 
     def heuristic(options: list[Option]) -> Option:
@@ -93,7 +90,6 @@ def process(rootDir: str) -> int:
         return options[0]
 
     return newFix(
-        rootDir=rootDir,
         issues=issues,
         callback=cb,
         prompt=prompt,

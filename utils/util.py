@@ -1,8 +1,10 @@
+import sys
 from thefuzz import fuzz
-from titlecase import titlecase
 from utils.fs import loadFolders, loadTracks
 from utils.userio import chooseFromList, red, green, confirm
-from utils.path import splitTrackName, stripRootPath
+from utils.path import stripRootPath
+from utils.tagging import getTrackTime
+from utils.constants import rootDir
 import json
 from internal_types import Issue, Key, Option
 from typing import Callable, Optional
@@ -19,12 +21,13 @@ def loopArtists(rootDir: str, cb: Callable[[os.DirEntry], list]) -> list:
         #     continue
         i += 1
         results += cb(artist)
-        # if i > 1:
-        #     sys.stdout.write("\033[F")
-        #     sys.stdout.write("\033[K")
+        if i > 1:
+            sys.stdout.write("\033[F")
+            sys.stdout.write("\033[K")
         # if i > 20:
         # return results
         print(i, "/", len(artists), artist.name)
+
     return results
 
 
@@ -52,36 +55,66 @@ def loopTracks(
     return loopAlbums(rootDir, loop)
 
 
-def compare(a: str, b: str) -> int:
-    if splitTrackName(a) and splitTrackName(b):
-        aScrubbed = splitTrackName(a)["name"].lower()
-        bScrubbed = splitTrackName(b)["name"].lower()
-    else:
-        aScrubbed = a.lower()
-        bScrubbed = b.lower()
-    if (
-        "remix" in aScrubbed
-        and "remix" not in bScrubbed
-        or ("remix" in bScrubbed and "remix" not in aScrubbed)
-    ):
+def compare(a: os.DirEntry, b: os.DirEntry) -> int:
+    aParts = stripRootPath(a.path).split("/")
+    bParts = stripRootPath(b.path).split("/")
+    ratio = 0
+
+    pathType = len(aParts)
+
+    artistAScrubbed = aParts[0].lower()
+    artistBScrubbed = bParts[0].lower()
+    artistRatio = fuzz.ratio(artistAScrubbed, artistBScrubbed)
+    if artistRatio < 85:
         return False
-    ratio = fuzz.ratio(aScrubbed, bScrubbed)
-    return ratio > 85
+
+    if pathType == 2:
+        albumAScrubbed = aParts[1].lower()
+        albumBScrubbed = bParts[1].lower()
+        ratio = fuzz.ratio(albumAScrubbed, albumBScrubbed)
+        return ratio > 85
+
+    if pathType == 3:  # Track
+        titleAScrubbed = aParts[2].lower()
+        titleBScrubbed = bParts[2].lower()
+
+        if (
+            "remix" in titleAScrubbed
+            and "remix" not in titleBScrubbed
+            or ("remix" in titleBScrubbed and "remix" not in titleAScrubbed)
+        ):
+            return False
+
+        ratio = fuzz.ratio(titleAScrubbed, titleBScrubbed)
+        if ratio > 85:
+            aLength = getTrackTime(a)
+            bLength = getTrackTime(b)
+            dupe = abs(aLength - bLength) < max(
+                aLength / 100, 1
+            )  # TODO - can play with these to tweak detection
+            return dupe
+
+        return False
+
+    return False
 
 
-def compareDupes(dir: os.DirEntry, keys: list[Key], key: str) -> list[Issue]:
-    dupes = filter(lambda d: compare(d["key"], key), keys)
+def compareDupes(entry: os.DirEntry, seenEntries: list[Key], key: str) -> list[Issue]:
+    def doCompare(seen: Key):
+        return compare(entry, seen["dir"])
+
+    dupes = list(filter(doCompare, seenEntries))
     found: list[Issue] = []
     for dupe in dupes:
         found.append(
             {
                 "data": None,
-                "entry": dir,
-                "original": dir.path,
+                "entry": entry,
+                "original": entry.path,
                 "delta": dupe["dir"].path,
             }
         )
-    keys.append({"dir": dir, "key": key})
+    seenEntries.append({"dir": entry, "key": key})
     return found
 
 
@@ -137,7 +170,7 @@ def buildOptions(
             {
                 "key": "1",
                 "value": issue["original"],
-                "display": red(stripRootPath(issue["original"], rootDir)),
+                "display": red(stripRootPath(issue["original"])),
             }
         )
 
@@ -146,7 +179,7 @@ def buildOptions(
             {
                 "key": "2",
                 "value": issue["delta"],
-                "display": green(stripRootPath(issue["delta"], rootDir)),
+                "display": green(stripRootPath(issue["delta"])),
             }
         )
 
@@ -196,7 +229,6 @@ def newFix(
     issues: list[Issue],
     prompt: Callable[[Issue, int, int], str],
     callback: Callable[[str, Issue], None],
-    rootDir: str,
     heuristic: Callable[[list[Option]], Option] = lambda x: x[0],
     suggest: Callable[[Issue], list[Option]] = lambda x: [],
     check: Callable[[Issue], bool] = lambda x: True,

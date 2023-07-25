@@ -1,9 +1,7 @@
-from utils.util import compareDupes, loopArtists, newFix, check, findBad
+from utils.util import compareDupes, loopArtists, newFix, findBad
 from utils.userio import promptHeader
-from utils.path import stripRootPath
 from internal_types import Issue, Key
 from utils.fs import moveDirFiles
-from typing import Optional
 
 
 def findArtistDupes(rootDir: str) -> list[Issue]:
@@ -30,4 +28,4 @@ def process(rootDir: str) -> int:
             + "Possible artist duplicates found. Select which to keep:"
         )
 
-    return newFix(rootDir=rootDir, issues=artistDupes, callback=callback, prompt=prompt)
+    return newFix(issues=artistDupes, callback=callback, prompt=prompt)

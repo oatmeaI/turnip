@@ -41,7 +41,6 @@ def process(rootDir: str) -> int:
         )
 
     return newFix(
-        rootDir=rootDir,
         issues=trackDupes,
         prompt=prompt,
         callback=callback,

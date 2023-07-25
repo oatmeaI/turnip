@@ -11,7 +11,7 @@ from utils.tagging import (
 import os
 from utils.util import newFix, loopTracks
 from internal_types import Issue, Option
-from utils.path import updateFileName, splitFileName, stripRootPath
+from utils.path import splitFileName, stripRootPath, renameFile
 from utils.userio import promptHeader, bold, red, green, yellow
 
 
@@ -35,17 +35,27 @@ replacements: list[Replacement] = [
 ]
 
 TagFunc = TypedDict(
-    "TagFunc", {"get": Callable[[str], str | None],
-                "set": Callable[[str, str], None]}
+    "TagFunc",
+    {"get": Callable[[str], str | None],
+        "set": Callable[[os.DirEntry, str], None]},
 )
 
 tagFuncs: Dict[str, TagFunc] = {
-    "title": {"get": getTitleTag, "set": setTitleTag},
-    "artist": {"get": getArtistTag, "set": setArtistTag},
-    "albumArtist": {"get": getAlbumArtistTag, "set": setAlbumArtistTag},
+    "title": {
+        "get": getTitleTag,
+        "set": lambda t, newTitle: setTitleTag(t.path, newTitle),
+    },
+    "artist": {
+        "get": getArtistTag,
+        "set": lambda t, newArtist: setArtistTag(t.path, newArtist),
+    },
+    "albumArtist": {
+        "get": getAlbumArtistTag,
+        "set": lambda t, newArtist: setAlbumArtistTag(t.path, newArtist),
+    },
     "filename": {
-        "get": lambda track: (splitFileName(track) or {"name": ""})["name"],
-        "set": lambda track, newName: updateFileName(track, newName),
+        "get": lambda track: (splitFileName(track) or {"name": ""})["title"],
+        "set": lambda track, newName: renameFile(track, newName),
     },
 }
 
@@ -95,7 +105,7 @@ def process(rootDir: str) -> int:
             promptHeader("replace", index, count)
             + "\n"
             + "Replacement found at "
-            + bold(stripRootPath(issue["entry"].path, rootDir))
+            + bold(stripRootPath(issue["entry"].path))
             + "\n"
             + "Replace "
             + red(issue["original"] or "")
@@ -115,15 +125,14 @@ def process(rootDir: str) -> int:
         if not tag:
             return
         print("Updating " + track.path + " - setting " + tag + " to " + good)
-        tagFuncs[tag]["set"](track.path, good)
+        tagFuncs[tag]["set"](track, good)
         if tag == "title":
-            updateFileName(track.path, good)
+            renameFile(track, good)
 
     def heuristic(options: list[Option]) -> Option:
         return options[1]
 
     return newFix(
-        rootDir=rootDir,
         issues=issues,
         prompt=prompt,
         callback=cb,

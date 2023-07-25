@@ -1,10 +1,15 @@
 import re
 import os
 from internal_types import Issue
-from utils.userio import promptHeader, bold
+from utils.userio import promptHeader, bold, confirm
 from utils.constants import featPattern
-from utils.util import newFix, loopTracks
-from utils.path import buildFileName, parseTrackPath, stripRootPath
+from utils.util import newFix, loopTracks, getInput
+from utils.path import (
+    stripRootPath,
+    splitFileName,
+    setArtistInPath,
+    renameFile,
+)
 from utils.tagging import (
     getAlbumArtistTag,
     setAlbumArtistTag,
@@ -16,7 +21,9 @@ from utils.tagging import (
 def findFeatInAlbumArtist(rootDir: str) -> list[Issue]:
     def cb(artist: os.DirEntry, album: os.DirEntry, track: os.DirEntry) -> list[Issue]:
         found: list[Issue] = []
-        parts = parseTrackPath(track.path, rootDir)
+        parts = splitFileName(track.path)
+        if not parts:
+            return []
         fileName = parts["artist"]
         tagName = getAlbumArtistTag(track.path)
         matches = re.match(featPattern, fileName)
@@ -33,7 +40,7 @@ def findFeatInAlbumArtist(rootDir: str) -> list[Issue]:
             {
                 "entry": track,
                 "original": original,
-                "delta": re.sub(featPattern, r"\1\3", original),
+                "delta": re.sub(featPattern, r"\1\3", original or ""),
                 "data": str(matches.group(2)),
             }
         )
@@ -46,70 +53,45 @@ def process(rootDir: str) -> int:
     issues = findFeatInAlbumArtist(rootDir)
 
     def cb(good: str, issue: Issue) -> None:
+        # Update Album Artist tag
         track = issue["entry"]
         setAlbumArtistTag(track.path, good)
 
-        print("Add featured artists to artist tag? (y/n)")
-        resp = input("> ")
-        while resp not in ["y", "n"]:
-            resp = input("> ")
-        if resp == "n":
-            return
-        artistTag = getArtistTag(track.path)
-        newArtistTag = (artistTag or "") + ", " + (issue["data"] or "")
-        print("Does this look right?", newArtistTag)
-        resp = input("(y)es/(e)dit/(s)kip")
-        while resp not in ["y", "e", "s"]:
-            resp = input("> ")
-        if resp == "e":
-            newArtistTag = input("> ")
-            print("Confirm", newArtistTag)
-            resp = input("(y)es/(n)o")
-            while resp not in ["y", "n"]:
-                resp = input("(y)es/(n)o")
-        if resp == "n":
-            newArtistTag = input("> ")
-        if resp == "y":
-            setArtistTag(track.path, newArtistTag)
+        # Add featured artists to artist tag
+        artistTag = getArtistTag(track.path) or ""
+        default = not issue["data"] or (issue["data"] not in artistTag)
 
-        parts = parseTrackPath(track.path, rootDir)
+        shouldUpdateArtist = confirm(
+            "Add featured artists to artist tag: " +
+            bold(artistTag or "") + "?",
+            default=default,
+        )
+
+        if shouldUpdateArtist:
+            newArtistTag = (artistTag or "") + " · " + (issue["data"] or "")
+            resp = confirm("Does this look right? " +
+                           bold(newArtistTag), default=True)
+            if not resp:
+                newArtistTag = getInput("Enter your correction")
+            else:
+                setArtistTag(track.path, newArtistTag)
+
+        # Update artist path
+        parts = splitFileName(track.path)
+
         if not parts:
             print("Error while parsing", track)
             return
-        albumDir = (
-            rootDir
-            + "/"
-            + good
-            + "/"
-            + parts["album"]["name"]
-            + (("(" + parts["album"]["year"] + ")")
-               if parts["album"]["year"] else "")
-        )
-        trackNumber = int(parts["track"]["number"]
-                          ) if parts["track"]["number"] else 0
-        extension = parts["track"]["extension"]
 
-        destination = buildFileName(
-            albumDir, trackNumber, parts["track"]["name"], extension
-        )
-        i = 1
-        while os.path.exists(destination):
-            destination = buildFileName(
-                albumDir, trackNumber, good + " " + str(i), extension
-            )
-            i += 1
-        if not os.path.exists(albumDir):
-            os.makedirs(albumDir, exist_ok=True)
-        os.rename(track, destination)
+        newPath = setArtistInPath(track, good)
+        renameFile(track, newPath)
 
     def prompt(issue: Issue, index: int, count: int) -> str:
         return (
             promptHeader("featInAlbumArtist", index, count)
             + "\n"
             + "Possible featured artist found in album artist tag at "
-            + bold(stripRootPath(issue["entry"].path, rootDir))
+            + bold(stripRootPath(issue["entry"].path))
         )
 
-    return newFix(
-        rootDir=rootDir, issues=issues, callback=cb, prompt=prompt, allowEdit=True
-    )
+    return newFix(issues=issues, callback=cb, prompt=prompt, allowEdit=True)

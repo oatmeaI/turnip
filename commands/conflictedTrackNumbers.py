@@ -1,7 +1,7 @@
 import os
 from internal_types import Issue, Option
 from utils.util import newFix, loadTracks, loopAlbums
-from utils.path import splitFileName, buildFileName, parseTrackPath, stripRootPath
+from utils.path import splitFileName, buildFileName, stripRootPath
 from utils.tagging import (
     getTrackNumberTag,
     setTrackNumberTag,
@@ -39,11 +39,13 @@ def process(rootDir: str) -> int:
 
     def suggest(issue: Issue) -> list[Option]:
         entry = issue["entry"]
-        split = parseTrackPath(entry.path, rootDir)
+        split = splitFileName(entry.path)
+
+        if not split:
+            return []
 
         results = tidal.searchTrack(
-            split["track"]["name"], split["album"]["name"], split["artist"]
-        )
+            split["title"], split["album"], split["artist"])
         suggestions: list[Option] = []
         for result in results:
             suggestions.append(
@@ -69,12 +71,13 @@ def process(rootDir: str) -> int:
         if tag != good:
             setTrackNumberTag(track.path, int(good))
             parts = splitFileName(track.path)
+
             if not parts:
                 print("Problem tagging", issue["entry"])
                 return
-            newName = buildFileName(
-                parts["dir"], int(good), parts["name"], parts["extension"]
-            )
+
+            parts["number"] = good
+            newName = buildFileName(parts)
             os.rename(track, newName)
 
     def prompt(issue: Issue, index: int, count: int) -> str:
@@ -82,11 +85,10 @@ def process(rootDir: str) -> int:
             promptHeader("conflictedTrackNumbers", index, count)
             + "\n"
             + "Two tracks with the same number at "
-            + bold(stripRootPath(issue["entry"].path, rootDir))
+            + bold(stripRootPath(issue["entry"].path))
         )
 
     return newFix(
-        rootDir=rootDir,
         issues=conflicts,
         callback=cb,
         prompt=prompt,

@@ -1,9 +1,7 @@
-from utils.util import compareDupes, loopAlbums, check, newFix, findBad
-from utils.path import stripRootPath
+from utils.util import compareDupes, loopAlbums, newFix, findBad
 from utils.userio import promptHeader
 from internal_types import Issue, Key
 from utils.fs import moveDirFiles
-from typing import Optional
 
 
 def findAlbumDupes(rootDir: str) -> list[Issue]:
@@ -41,4 +39,4 @@ def process(rootDir: str) -> int:
             + "Possible album duplicates found. Select which to keep:"
         )
 
-    return newFix(rootDir=rootDir, issues=albumDupes, callback=callback, prompt=prompt)
+    return newFix(issues=albumDupes, callback=callback, prompt=prompt)

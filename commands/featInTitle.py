@@ -21,7 +21,7 @@ def findFeatInTitle(rootDir: str) -> list[Issue]:
         if not parts:
             return found
 
-        fileName = parts["name"]
+        fileName = parts["title"]
         tagName = getTitleTag(track.path)
         matches = re.match(featPattern, fileName)
         foundInFile = True
@@ -82,6 +82,10 @@ def process(rootDir: str) -> int:
                 setArtistTag(track.path, newArtistTag)
 
         destination = setTitleInPath(track=track, title=good)
+
+        if not destination:
+            return
+
         renameFile(file=track, destination=destination)
 
     def prompt(issue: Issue, index: int, count: int) -> str:
@@ -89,7 +93,7 @@ def process(rootDir: str) -> int:
             promptHeader("featInTitle", index, count)
             + "\n"
             + "Featured artist found in title tag at: "
-            + bold(stripRootPath(issue["entry"].path, rootDir))
+            + bold(stripRootPath(issue["entry"].path))
         )
 
     def heuristic(options: list[Option]) -> Option:
@@ -99,7 +103,6 @@ def process(rootDir: str) -> int:
         return options[0]
 
     return newFix(
-        rootDir=rootDir,
         issues=issues,
         callback=cb,
         prompt=prompt,

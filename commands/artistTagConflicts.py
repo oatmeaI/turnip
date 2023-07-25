@@ -1,9 +1,9 @@
-from internal_types import Issue
+from internal_types import Issue, Option
 from utils.fs import loadTracks, loadFolders
 from utils.userio import promptHeader, bold
 from utils.util import newFix, loopArtists
 from utils.tagging import setAlbumArtistTag, getAlbumArtistTag
-from utils.path import parseTrackPath, stripRootPath
+from utils.path import stripRootPath, splitFileName
 from tidal import tidal
 import os
 
@@ -40,40 +40,39 @@ def findConflictedArtistTags(rootDir: str) -> list[Issue]:
 def process(rootDir) -> int:
     conflicts = findConflictedArtistTags(rootDir)
 
-    def suggest(issue: Issue):
+    def suggest(issue: Issue) -> list[Option]:
         entry = issue["entry"]
-        split = parseTrackPath(entry.path, rootDir)
+        split = splitFileName(entry.path)
+
+        if not split:
+            return []
 
         results = tidal.searchArtist(split["artist"])
-        suggestions = []
+        suggestions: list[Option] = []
         for result in results:
             suggestions.append(
-                {
-                    "key": "NONE",
-                    "value": result.name,
-                }
-            )
+                {"key": "NONE", "value": result.name, "display": None})
         return suggestions
 
     def callback(good: str, issue: Issue):
         artist = issue["entry"]
         albums = loadFolders(artist.path)
         for album in albums:
-            tracks = loadTracks(issue["entry"].path)
+            tracks = loadTracks(album.path)
             for track in tracks:
-                if getAlbumArtistTag(track.path) != good:
+                existingTag = getAlbumArtistTag(track.path) != good
+                if existingTag != good:
                     setAlbumArtistTag(track.path, good)
 
     def prompt(issue: Issue, index: int, count: int) -> str:
         return (
             promptHeader("artistTagConflicts", index, count)
             + "\n"
-            + "Conflicted artist tags for artist "
-            + bold(stripRootPath(issue["entry"].path, rootDir))
+            + "Conflicted album artist tags for artist at"
+            + bold(stripRootPath(issue["entry"].path))
         )
 
     return newFix(
-        rootDir=rootDir,
         issues=conflicts,
         prompt=prompt,
         callback=callback,

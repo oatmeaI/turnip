@@ -87,11 +87,10 @@ def process(rootDir: str) -> int:
             promptHeader("listInAlbumArtist", index, count)
             + "\n"
             + "Artist list found in album artist tag at: "
-            + bold(stripRootPath(issue["entry"].path, rootDir))
+            + bold(stripRootPath(issue["entry"].path))
         )
 
     return newFix(
-        rootDir=rootDir,
         issues=issues,
         callback=cb,
         prompt=prompt,

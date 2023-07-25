@@ -3,7 +3,7 @@ from utils.fs import loadTracks
 from utils.userio import promptHeader, blue, bold
 from utils.util import loopAlbums
 from utils.tagging import getTrackCountTag, setTrackCountTag
-from utils.path import parseTrackPath, stripRootPath
+from utils.path import splitFileName, stripRootPath
 from utils.util import newFix
 from tidal import tidal
 import os
@@ -29,8 +29,10 @@ def process(rootDir: str) -> int:
 
     def suggest(issue: Issue) -> list[Option]:
         entry = issue["entry"]
-        tags = parseTrackPath(entry.path, rootDir)
-        results = tidal.searchAlbum(tags["album"]["name"], tags["artist"])
+        tags = splitFileName(entry.path)
+        if not tags:
+            return []
+        results = tidal.searchAlbum(tags["album"], tags["artist"])
         suggestions: list[Option] = []
         for result in results:
             suggestions.append(
@@ -58,11 +60,10 @@ def process(rootDir: str) -> int:
             promptHeader("missingTrackCounts", index, count)
             + "\n"
             + "Missing track count for album at "
-            + bold(stripRootPath(issue["entry"].path, rootDir))
+            + bold(stripRootPath(issue["entry"].path))
         )
 
     return newFix(
-        rootDir=rootDir,
         issues=conflicts,
         callback=callback,
         prompt=prompt,

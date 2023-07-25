@@ -4,7 +4,7 @@ from utils.util import loopAlbums
 from typing import Optional
 from internal_types import Issue, Option
 from utils.util import newFix
-from utils.path import getArtistFromPath, stripRootPath
+from utils.path import stripRootPath, splitFileName
 from utils.userio import promptHeader, bold, blue
 from tidal import tidal
 import os
@@ -59,8 +59,12 @@ def process(rootDir: str) -> int:
 
     def suggest(issue: Issue) -> list[Option]:
         entry = issue["entry"]
-        tags = getArtistFromPath(entry.path, rootDir)
-        results = tidal.searchAlbum(tags["album"], tags["artist"])
+        parts = splitFileName(entry.path)
+
+        if not parts:
+            return []
+
+        results = tidal.searchAlbum(parts["album"], parts["artist"])
         suggestions: list[Option] = []
         for result in results:
             suggestions.append(
@@ -88,11 +92,10 @@ def process(rootDir: str) -> int:
             promptHeader("countTagConflicts", index, count)
             + "\n"
             + "Conflicted track count tags for album at "
-            + bold(stripRootPath(issue["entry"].path, rootDir))
+            + bold(stripRootPath(issue["entry"].path))
         )
 
     return newFix(
-        rootDir=rootDir,
         issues=conflicts,
         prompt=prompt,
         callback=callback,

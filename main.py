@@ -21,7 +21,6 @@ from commands import featInAlbumArtist
 from commands import featInAlbum
 from commands import listInAlbumArtist
 from commands import replace
-from utils.fs import rmFile
 from utils.tagging import writeTagCache
 
 
@@ -93,9 +92,9 @@ commands = {
 
 def main():
     commandName = sys.argv[1]
-    dir = sys.argv[2]
+    rootDir = sys.argv[2]
 
-    commands[commandName](dir)
+    commands[commandName](rootDir)
     writeTagCache()
 
 

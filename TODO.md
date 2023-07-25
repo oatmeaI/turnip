@@ -4,15 +4,15 @@
 
 ## Bugs
 
--   ! Deal with special characters in file paths everywhere
--   ! Strip trailing spaces everywhere
--   ! artistTagConflicts isn't working - changes aren't taking effect
 -   ! Tidal search isn't always giving results that it should - also non-english text breaks
 -   ! Deal with multi-disc track numbers
+-   ! Strip trailing spaces everywhere
+-   ! Significant slowdown after path refactoring
 -   yearTagFolderConflicts: remove "None"s from options
 -   util.py:152: dedupe options in buildOptions / from suggestions
 -   tagging.py:141: Might need to transform tag values before setting into cache
 -   artistTagFolderConflicts: deduping isn't working
+-   artistTagFolderConflicts: heuristics
 -   replace.py:28: "this breaks when the file doesn't have the special character" - not sure what this means
 -   handle file errors / changed paths on featInTitle
 -   numberTagFileConflicts: dedupe options
@@ -41,7 +41,6 @@
 -   ! conflictedTrackNumbers: this command is kind of useless, rework entirely
 -   ! add option to update track count in fixMissingTracks
 -   ! only rip missing tracks
--   ! Check song length in track dupes?
 -   Add "count" command that gives statistics and issue counts
 -   [listInAlbumArtist / listInX] - detect 'and' '&' ',' in artist tags (build listInX commands)
 -   Always print what we're doing in CB

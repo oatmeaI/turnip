@@ -5,7 +5,7 @@ from utils.fs import loadTracks
 from commands.countTagConflicts import detectConflictedTracks, detectMissingTrackCount
 from utils.tagging import getTrackCountTag
 from tidal.rip import rip
-from utils.path import parseTrackPath, stripRootPath
+from utils.path import stripRootPath, splitFileName
 from utils.fs import rmDir
 from tidal.tidal import searchAlbum
 import os
@@ -49,8 +49,6 @@ def findMissingTracks(rootDir: str) -> list[Issue]:
 
 
 def process(rootDir):
-    i = 0
-    c = 0
     albumsMissingTracks = findMissingTracks(rootDir)
 
     def prompt(issue: Issue, index: int, count: int) -> str:
@@ -70,7 +68,7 @@ def process(rootDir):
             + ". Expected "
             + bold(str(issue["delta"]))
             + " at "
-            + bold(stripRootPath(issue["entry"].path, rootDir))
+            + bold(stripRootPath(issue["entry"].path))
         )
 
         return line1
@@ -97,19 +95,18 @@ def process(rootDir):
 
     def suggest(issue: Issue) -> list[Option]:
         album = issue["entry"]
-        parts = parseTrackPath(album.path, rootDir)
-        results = searchAlbum(parts["album"]["name"], parts["artist"])
+        parts = splitFileName(album.path)
+        if not parts:
+            return []
+        results = searchAlbum(parts["album"], parts["artist"])
         choices: list[Option] = []
-        i = 1
         for result in results:
             url = "https://listen.tidal.com/album/" + str(result.id)
-            choices.append({"key": str(i), "value": url,
+            choices.append({"key": "NONE", "value": url,
                            "display": makeKey(result)})
-            i += 1
         return choices
 
     return newFix(
-        rootDir=rootDir,
         issues=albumsMissingTracks,
         prompt=prompt,
         callback=cb,

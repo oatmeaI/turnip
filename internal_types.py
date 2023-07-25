@@ -19,7 +19,15 @@ Ignore = TypedDict("Ignore", {})
 
 TrackNameParts = TypedDict(
     "TrackNameParts",
-    {"dir": str, "name": str, "number": Optional[str], "extension": str},
+    {
+        "path": str,
+        "title": str,
+        "number": Optional[str],
+        "extension": str,
+        "artist": str,
+        "album": str,
+        "year": str,
+    },
 )
 
 Key = TypedDict("Key", {"dir": os.DirEntry, "key": str})
