@@ -1,4 +1,6 @@
 from internal_types import TrackNameParts
+import shutil
+from pathlib import Path
 from utils.fs import ensureDirExists
 from utils.tagging import getTitleTag, getAlbumTag, getAlbumArtistTag
 from typing import Optional
@@ -100,7 +102,7 @@ def splitFileName(fullPath: str) -> Optional[TrackNameParts]:
         matches = re.match(r"(\d*)[ -]{0,3}(.*)\.(.*)", fileName)
         if not matches:
             return None
-        title = matches.group(2)
+        pathTitle = matches.group(2)
         number = matches.group(1)
         extension = matches.group(3)
 
@@ -151,8 +153,20 @@ def buildFileName(parts: TrackNameParts) -> str:
     return path[:-1] if path.endswith("/") else path
 
 
-def renameFile(file: os.DirEntry, destination: str):
-    if file.path == destination:
+def rename(fromPath: str, toPath: str) -> None:
+    if fromPath == toPath or not os.path.exists(fromPath):
+        return
+
+    # TODO - probably a builtin to do this
+    parent = toPath[: toPath.rindex("/")]
+    if not os.path.exists(parent):
+        Path(parent).mkdir(parents=True, exist_ok=True)
+
+    shutil.move(fromPath, toPath)
+
+
+def renameFile(file: str, destination: str):
+    if file == destination:
         return
 
     i = 1

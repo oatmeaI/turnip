@@ -4,11 +4,8 @@
 
 ## Bugs
 
--   ! titleTagFileConflicts seems broken - too many issues
--   ! conflictedTrackNumbers throws error
 -   ! Tidal search isn't always giving results that it should - also non-english text breaks
 -   ! Deal with multi-disc track numbers
--   ! Strip trailing spaces everywhere
 -   yearTagFolderConflicts: remove "None"s from options
 -   util.py:152: dedupe options in buildOptions / from suggestions
 -   tagging.py:141: Might need to transform tag values before setting into cache
@@ -43,6 +40,7 @@
 -   ! conflictedTrackNumbers: this command is kind of useless, rework entirely
 -   ! add option to update track count in fixMissingTracks
 -   ! only rip missing tracks
+-   Strip trailing spaces everywhere
 -   strict duplicate track mode that only searches within artist folder for better speed
 -   findMissingYear
 -   Add "count" command that gives statistics and issue counts
