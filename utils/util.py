@@ -231,6 +231,9 @@ def newFix(
     callback: Callable[[str, Issue], None],
     heuristic: Callable[[list[Option]], Option] = lambda x: x[0],
     suggest: Callable[[Issue], list[Option]] = lambda x: [],
+    similar: Callable[[Issue], str] = lambda issue: (issue["original"] or "")
+    + ">"
+    + (issue["delta"] or ""),
     check: Callable[[Issue], bool] = lambda x: True,
     allowEdit: bool = False,
     skipIssueValues: bool = False,
@@ -248,7 +251,7 @@ def newFix(
         if ignoreIssue in ignoreCache:
             return False
 
-        similarKey = (issue["original"] or "") + ">" + (issue["delta"] or "")
+        similarKey = similar(issue)
         if similarKey in skipSimilar:
             return False
 
@@ -285,7 +288,7 @@ def newFix(
         if options[-1]["value"] == "skip":
             continue
 
-        similarKey = (issue["original"] or "") + ">" + (issue["delta"] or "")
+        similarKey = similar(issue)
         if similarKey in skipSimilar:
             print("Skipping...")
             continue

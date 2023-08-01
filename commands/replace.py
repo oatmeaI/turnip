@@ -9,8 +9,10 @@ from utils.tagging import (
     setAlbumArtistTag,
 )
 import os
+from Song import Song
 from utils.util import newFix, loopTracks
 from internal_types import Issue, Option
+from utils.constants import rootDir
 from utils.path import splitFileName, stripRootPath, renameFile
 from utils.userio import promptHeader, bold, red, green, yellow
 
@@ -43,19 +45,15 @@ TagFunc = TypedDict(
 tagFuncs: Dict[str, TagFunc] = {
     "title": {
         "get": getTitleTag,
-        "set": lambda t, newTitle: setTitleTag(t.path, newTitle),
+        "set": lambda t, newTitle: t.setTitle(newTitle),
     },
     "artist": {
         "get": getArtistTag,
-        "set": lambda t, newArtist: setArtistTag(t.path, newArtist),
+        "set": lambda t, newArtist: t.setArtist(newArtist),
     },
     "albumArtist": {
         "get": getAlbumArtistTag,
-        "set": lambda t, newArtist: setAlbumArtistTag(t.path, newArtist),
-    },
-    "filename": {
-        "get": lambda track: (splitFileName(track) or {"name": ""})["title"],
-        "set": lambda track, newName: renameFile(track, newName),
+        "set": lambda t, newArtist: t.setAlbumArtist(newArtist),
     },
 }
 
@@ -97,7 +95,7 @@ def findReplacements(rootDir: str) -> list[Issue]:
     return loopTracks(rootDir, cb)
 
 
-def process(rootDir: str) -> int:
+def process() -> int:
     issues = findReplacements(rootDir)
 
     def prompt(issue: Issue, index: int, count: int) -> str:
@@ -125,9 +123,8 @@ def process(rootDir: str) -> int:
         if not tag:
             return
         print("Updating " + track.path + " - setting " + tag + " to " + good)
-        tagFuncs[tag]["set"](track, good)
-        if tag == "title":
-            renameFile(track, good)
+        song = Song(track.path)
+        tagFuncs[tag]["set"](song, good)
 
     def heuristic(options: list[Option]) -> Option:
         return options[1]

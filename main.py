@@ -64,7 +64,7 @@ commands = {
     "clean": clean,
     "verifyFolderStructure": folderStructure.verify,
     "removeEmptyFolders": emptyFolders.process,
-    "trackDuplicates": trackDuplicates.process,
+    "trackDuplicates": trackDuplicates.TrackDuplicates().process,
     "albumDuplicates": albumDuplicates.process,
     "artistDuplicates": artistDuplicates.ArtistDuplicates().process,
     "artistTagConflicts": artistTagConflicts.ArtistTagConflicts().process,

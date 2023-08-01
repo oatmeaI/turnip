@@ -6,6 +6,7 @@
 
 -   ! Tidal search isn't always giving results that it should - also non-english text breaks
 -   ! Deal with multi-disc track numbers
+-   "similar resolution" thing doesn't work for trackDuplicates
 -   yearTagFolderConflicts: remove "None"s from options
 -   util.py:152: dedupe options in buildOptions / from suggestions
 -   tagging.py:141: Might need to transform tag values before setting into cache
@@ -15,6 +16,7 @@
 -   handle file errors / changed paths on featInTitle
 -   numberTagFileConflicts: dedupe options
 -   Incorrect choice numbers when skipping issue options
+-   Issue count is incorrect after skipAllSimilar or ignoreAllSimilar
 -   trailing slashes on rootdir break everything
 -   handle 401 from tidal
 

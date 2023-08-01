@@ -11,6 +11,9 @@ class Command:
     skipIssueValues = False
     suggestionLimit = 3
 
+    def similar(self, issue: Issue) -> str:
+        return (issue["original"] or "") + ">" + (issue["delta"] or "")
+
     def findIssues(self):
         return []
 
@@ -43,6 +46,7 @@ class Command:
             allowEdit=self.allowEdit,
             skipIssueValues=self.skipIssueValues,
             suggestionLimit=self.suggestionLimit,
+            similar=self.similar,
         )
 
 

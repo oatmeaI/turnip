@@ -3,6 +3,7 @@ from utils.path import stripRootPath
 
 
 class Entry:
+    # TODO - not really a "side" effect, more like the main event. gotta be a better way to structure this
     propUpdateSideEffects = {}
 
     def __init__(self, path: str) -> None:
