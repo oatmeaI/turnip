@@ -25,7 +25,7 @@ Replacement = TypedDict(
 
 replacements: list[Replacement] = [
     {"find": "remix", "replace": "Remix", "search": "all", "auto": False},
-    {"find": " (Album Version)", "replace": "", "search": "all", "auto": True},
+    {"find": " (Album Version) [Album Version]/Album Version", "replace": "", "search": "all", "auto": True},
     {"find": "’", "replace": "'", "search": "all", "auto": True},
     {
         "find": "“",

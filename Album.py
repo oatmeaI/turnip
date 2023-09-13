@@ -1,5 +1,5 @@
 from utils.util import loadTracks
-from utils.tagging import setAlbumTag, setAlbumArtistTag
+from utils.tagging import setAlbumTag, setAlbumArtistTag, getAlbumArtistTag
 from Entry import Entry
 
 
@@ -19,9 +19,15 @@ class Album(Entry):
         # For each track in tracks set year
 
     def setAlbumArtist(self, albumArtist: str) -> None:
-        self.parts["artist"] = albumArtist
-        map(lambda f: setAlbumArtistTag(f, albumArtist), self.tracks)
-        self.updatePath()
+        for track in self.tracks:
+            albumArtistTag = getAlbumArtistTag(track.path)
+            if (albumArtistTag == albumArtist):
+                continue
+            setAlbumArtistTag(track.path, albumArtist)
+            self.printPropUpdate('albumArtist', albumArtist)
+        if (self.parts["artist"] != albumArtist):
+            self.parts["artist"] = albumArtist
+            self.updatePath()
 
     def setTitle(self, title: str) -> None:
         self.parts["album"] = title

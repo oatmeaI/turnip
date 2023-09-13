@@ -2,7 +2,7 @@ import sys
 from thefuzz import fuzz
 from utils.fs import loadFolders, loadTracks
 from utils.userio import chooseFromList, red, green, confirm
-from utils.path import stripRootPath
+from utils.path import stripRootPath, splitFileName
 from utils.tagging import getTrackTime
 from utils.constants import rootDir
 import json
@@ -22,16 +22,17 @@ def loopArtists(rootDir: str, cb: Callable[[os.DirEntry], list]) -> list:
         i += 1
         results += cb(artist)
         if i > 1:
-            sys.stdout.write("\033[F")
-            sys.stdout.write("\033[K")
-        # if i > 20:
-        # return results
-        print(i, "/", len(artists), artist.name)
-
+            sys.stdout.write('\033[F')
+            sys.stdout.write('\033[K')
+        # if i > 150:
+        #    return results
+        print(i, '/', len(artists), artist.name)
     return results
 
 
-def loopAlbums(rootDir: str, cb: Callable[[os.DirEntry, os.DirEntry], list]) -> list:
+def loopAlbums(
+    rootDir: str, cb: Callable[[os.DirEntry, os.DirEntry], list]
+) -> list:
     def loop(artist):
         results = []
         albums = loadFolders(artist.path)
@@ -56,37 +57,47 @@ def loopTracks(
 
 
 def compare(a: os.DirEntry, b: os.DirEntry) -> int:
-    aParts = stripRootPath(a.path).split("/")
-    bParts = stripRootPath(b.path).split("/")
+    THRESHOLD = 70
+    aParts = stripRootPath(a.path).split('/')
+    bParts = stripRootPath(b.path).split('/')
     ratio = 0
 
     pathType = len(aParts)
 
     artistAScrubbed = aParts[0].lower()
     artistBScrubbed = bParts[0].lower()
+
+    if artistAScrubbed.startswith('the'):
+        artistAScrubbed = artistAScrubbed[3:]
+    if artistBScrubbed.startswith('the'):
+        artistBScrubbed = artistBScrubbed[3:]
+
     artistRatio = fuzz.ratio(artistAScrubbed, artistBScrubbed)
-    if artistRatio < 85:
+    if artistRatio < THRESHOLD:
         return False
 
+    if pathType == 1:
+        return artistRatio > THRESHOLD
+
     if pathType == 2:
-        albumAScrubbed = aParts[1].lower()
-        albumBScrubbed = bParts[1].lower()
+        albumAScrubbed = splitFileName(a.path)['album'].lower()
+        albumBScrubbed = splitFileName(b.path)['album'].lower()
         ratio = fuzz.ratio(albumAScrubbed, albumBScrubbed)
-        return ratio > 85
+        return ratio > THRESHOLD
 
     if pathType == 3:  # Track
         titleAScrubbed = aParts[2].lower()
         titleBScrubbed = bParts[2].lower()
 
         if (
-            "remix" in titleAScrubbed
-            and "remix" not in titleBScrubbed
-            or ("remix" in titleBScrubbed and "remix" not in titleAScrubbed)
+            'remix' in titleAScrubbed
+            and 'remix' not in titleBScrubbed
+            or ('remix' in titleBScrubbed and 'remix' not in titleAScrubbed)
         ):
             return False
 
         ratio = fuzz.ratio(titleAScrubbed, titleBScrubbed)
-        if ratio > 85:
+        if ratio > THRESHOLD:
             aLength = getTrackTime(a)
             bLength = getTrackTime(b)
             dupe = abs(aLength - bLength) < max(
@@ -99,28 +110,40 @@ def compare(a: os.DirEntry, b: os.DirEntry) -> int:
     return False
 
 
-def compareDupes(entry: os.DirEntry, seenEntries: list[Key], key: str) -> list[Issue]:
+def compareDupes(
+    entry: os.DirEntry, seenEntries: list[Key], key: str
+) -> list[Issue]:
     def doCompare(seen: Key):
-        return compare(entry, seen["dir"])
+        return compare(entry, seen['dir'])
 
     dupes = list(filter(doCompare, seenEntries))
     found: list[Issue] = []
     for dupe in dupes:
-        found.append(
-            {
-                "data": None,
-                "entry": entry,
-                "original": entry.path,
-                "delta": dupe["dir"].path,
-            }
+        issue = {
+            'data': None,
+            'entry': entry,
+            'original': entry.path,
+            'delta': dupe['dir'].path,
+        }
+        reverse = next(
+            (
+                x
+                for x in found
+                if x['original'] == issue['delta']
+                and x['delta'] == issue['original']
+            ),
+            None,
         )
-    seenEntries.append({"dir": entry, "key": key})
+        if issue in found or reverse:
+            continue
+        found.append(issue)
+    seenEntries.append({'dir': entry, 'key': key})
     return found
 
 
 def readIgnoreCache():
     try:
-        file = open("./ignoreCache.json", "r")
+        file = open('./ignoreCache.json', 'r')
         ignoreCache = json.load(file)
         file.close()
         return ignoreCache
@@ -129,7 +152,7 @@ def readIgnoreCache():
 
 
 def writeIgnoreCache(cache):
-    file = open("./ignoreCache.json", "w")
+    file = open('./ignoreCache.json', 'w')
     json.dump(cache, file)
     file.close()
 
@@ -139,17 +162,17 @@ ignoreCache = readIgnoreCache()
 
 def findBad(issue: Issue, good: str) -> Optional[str]:
     return (
-        issue["original"]
-        if good == issue["delta"]
-        else (issue["delta"] if good == issue["original"] else None)
+        issue['original']
+        if good == issue['delta']
+        else (issue['delta'] if good == issue['original'] else None)
     )
 
 
 def check(issue: Issue) -> bool:
-    if issue["original"] and not os.path.exists(issue["original"]):
+    if issue['original'] and not os.path.exists(issue['original']):
         return False
 
-    if issue["delta"] and not os.path.exists(issue["delta"]):
+    if issue['delta'] and not os.path.exists(issue['delta']):
         return False
     return True
 
@@ -162,24 +185,25 @@ def buildOptions(
     skipIssueValues: bool,
     suggestionLimit: int,
     rootDir: str,
+    optionString: Callable[[str], str],
 ) -> list[Option]:
     options: list[Option] = []
 
-    if issue["original"] and not skipIssueValues:
+    if issue['original'] and not skipIssueValues:
         options.append(
             {
-                "key": "1",
-                "value": issue["original"],
-                "display": red(stripRootPath(issue["original"])),
+                'key': '1',
+                'value': issue['original'],
+                'display': red(optionString(issue['original'])),
             }
         )
 
-    if issue["delta"] and not skipIssueValues:
+    if issue['delta'] and not skipIssueValues:
         options.append(
             {
-                "key": str(len(options) + 1),
-                "value": issue["delta"],
-                "display": green(stripRootPath(issue["delta"])),
+                'key': str(len(options) + 1),
+                'value': issue['delta'],
+                'display': green(optionString(issue['delta'])),
             }
         )
 
@@ -188,40 +212,44 @@ def buildOptions(
     i = len(options) + 1
     end = max(len(suggestions) - 1, suggestionLimit)
     for suggestion in suggestions[0:end]:
-        suggestion["key"] = str(i)
+        suggestion['key'] = str(i)
         options.append(suggestion)
         i += 1
 
-    options.append({"key": "K", "value": "skipsimilar",
-                   "display": "skip all similar"})
     options.append(
-        {"key": "I", "value": "ignoresimilar", "display": "ignore all similar"}
+        {'key': 'K', 'value': 'skipsimilar', 'display': 'skip all similar'}
     )
-    options.append({"key": "s", "value": "skip", "display": "skip"})
-    options.append({"key": "S", "value": "skip all", "display": "skip all"})
-    options.append({"key": "i", "value": "ignore", "display": "ignore"})
+    options.append(
+        {'key': 'I', 'value': 'ignoresimilar', 'display': 'ignore all similar'}
+    )
+    options.append({'key': 's', 'value': 'skip', 'display': 'skip'})
+    options.append({'key': 'S', 'value': 'skip all', 'display': 'skip all'})
+    options.append({'key': 'i', 'value': 'ignore', 'display': 'ignore'})
 
     default = heuristic(options)
 
     if allowEdit:
-        options.append({"key": "e", "value": "edit", "display": "edit"})
+        options.append({'key': 'e', 'value': 'edit', 'display': 'edit'})
 
     if default:
         options.append(
-            {"key": "", "value": default["value"],
-                "display": default["display"]}
+            {
+                'key': '',
+                'value': default['value'],
+                'display': default['display'],
+            }
         )
 
     return options
 
 
-def getInput(prompt=""):
+def getInput(prompt=''):
     resp = False
 
     while not resp:
         print(prompt) if prompt else None
-        value = input("> ")
-        resp = confirm("Confirm " + value + "?", default=True)
+        value = input('> ')
+        resp = confirm('Confirm ' + value + '?', default=True)
     return value
 
 
@@ -231,13 +259,16 @@ def newFix(
     callback: Callable[[str, Issue], None],
     heuristic: Callable[[list[Option]], Option] = lambda x: x[0],
     suggest: Callable[[Issue], list[Option]] = lambda x: [],
-    similar: Callable[[Issue], str] = lambda issue: (issue["original"] or "")
-    + ">"
-    + (issue["delta"] or ""),
+    similar: Callable[[Issue], str] = lambda issue: (issue['original'] or '')
+    + '>'
+    + (issue['delta'] or ''),
+    skip: Optional[Callable[[Issue], str]] = None,
     check: Callable[[Issue], bool] = lambda x: True,
     allowEdit: bool = False,
     skipIssueValues: bool = False,
     suggestionLimit: int = 3,
+    auto: Callable[[Issue], bool] = lambda x: False,
+    optionString: Callable[[str], str] = lambda x: x,
 ) -> int:
     count = 0
     i = 0
@@ -246,16 +277,17 @@ def newFix(
 
     def shouldProcess(issue: Issue) -> bool:
         ignoreIssue = copy.copy(issue)
-        ignoreIssue["entry"] = issue["entry"].path
+        ignoreIssue['entry'] = issue['entry'].path
 
         if ignoreIssue in ignoreCache:
             return False
 
         similarKey = similar(issue)
-        if similarKey in skipSimilar:
+        skipKey = skip(issue) if skip else similarKey
+        if skipKey in skipSimilar:
             return False
 
-        if similarKey in ignoreCache:
+        if skipKey in ignoreCache:
             return False
 
         return True
@@ -265,7 +297,7 @@ def newFix(
     for issue in filteredIssues:
         i += 1
         ignoreIssue = copy.copy(issue)
-        ignoreIssue["entry"] = issue["entry"].path
+        ignoreIssue['entry'] = issue['entry'].path
         if ignoreIssue in ignoreCache:
             continue
 
@@ -282,58 +314,65 @@ def newFix(
             skipIssueValues,
             suggestionLimit,
             rootDir,
+            optionString,
         )
 
         # skip items with no suggestions except to skip
-        if options[-1]["value"] == "skip":
+        if options[-1]['value'] == 'skip':
+            continue
+
+        if not shouldProcess(issue):
+            print('Skipping...')
+            continue
+
+        print('')  # New line
+
+        autoResolve = auto(issue)
+        defaultOption = heuristic(options)
+        if autoResolve and defaultOption:
+            resp = defaultOption['value']
+            callback(resp, issue)
+            count += 1
             continue
 
         similarKey = similar(issue)
-        if similarKey in skipSimilar:
-            print("Skipping...")
-            continue
-
-        if similarKey in ignoreCache:
-            continue
-
-        print("")  # New line
-
+        skipKey = skip(issue) if skip else similarKey
         if similarKey in resolutions:
             print(
-                "Similar resolution recorded for "
-                + red(issue["original"] or "")
-                + ": "
+                'Similar resolution recorded for '
+                + red(issue['original'] or '')
+                + ': '
                 + green(resolutions[similarKey])
             )
-            useSimilar = confirm("Would you like to use this?", default=True)
+            useSimilar = confirm('Would you like to use this?', default=True)
             if useSimilar:
                 callback(resolutions[similarKey], issue)
                 continue
 
         resp = chooseFromList(options)
 
-        if resp == "skip all":
+        if resp == 'skip all':
             break
 
-        if resp == "skip":
+        if resp == 'skip':
             continue
 
-        if resp == "ignore":
-            issue["entry"] = issue["entry"].path
+        if resp == 'ignore':
+            issue['entry'] = issue['entry'].path
             ignoreCache.append(issue)
             writeIgnoreCache(ignoreCache)
             continue
 
-        if resp == "ignoresimilar":
-            ignoreCache.append(similarKey)
+        if resp == 'ignoresimilar':
+            ignoreCache.append(skipKey)
             writeIgnoreCache(ignoreCache)
             continue
 
-        if resp == "skipsimilar":
-            skipSimilar.append(similarKey)
+        if resp == 'skipsimilar':
+            skipSimilar.append(skipKey)
             continue
 
-        if resp == "edit":
+        if resp == 'edit':
             resp = getInput()
 
         resolutions[similarKey] = resp

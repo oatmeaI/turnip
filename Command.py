@@ -6,13 +6,16 @@ from internal_types import Issue
 
 
 class Command:
-    cta = ""
+    cta = ''
     allowEdit = False
     skipIssueValues = False
     suggestionLimit = 3
 
     def similar(self, issue: Issue) -> str:
-        return (issue["original"] or "") + ">" + (issue["delta"] or "")
+        return (issue['original'] or '') + '>' + (issue['delta'] or '')
+
+    def skip(self, issue: Issue) -> str:
+        return (issue['original'] or '') + '>' + (issue['delta'] or '')
 
     def findIssues(self):
         return []
@@ -29,11 +32,17 @@ class Command:
     def check(self, issue):
         return True
 
+    def auto(self, issue):
+        return False
+
+    def optionString(self, optionValue: str) -> str:
+        return stripRootPath(optionValue)
+
     def prompt(self, issue: Issue, index: int, count: int):
         return f"{promptHeader(self.__class__.__name__, index, count)}\n{self.cta} {stripRootPath(issue['entry'].path)}"
 
     def process(self) -> int:
-        print("\n" + formatCommandName(self.__class__.__name__))
+        print('\n' + formatCommandName(self.__class__.__name__))
         issues = self.findIssues()
 
         return newFix(
@@ -47,6 +56,9 @@ class Command:
             skipIssueValues=self.skipIssueValues,
             suggestionLimit=self.suggestionLimit,
             similar=self.similar,
+            auto=self.auto,
+            optionString=self.optionString,
+            skip=self.skip,
         )
 
 

@@ -3,9 +3,7 @@ import pickle
 import os
 from utils.userio import blue
 
-config = tidalapi.Config(
-    quality=tidalapi.Quality.lossless, video_quality=tidalapi.VideoQuality.low
-)
+config = tidalapi.Config()
 session = tidalapi.Session(config)
 session.country_code = "US"
 
@@ -51,6 +49,7 @@ def checkLogin():
 
 
 def searchAlbum(album: str, artist: str):
+    #return []
     checkLogin()
     query = " ".join([album, artist])
     print("Searching Tidal with query: '" + blue(query) + "'")

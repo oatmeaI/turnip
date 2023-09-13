@@ -2,16 +2,20 @@ from utils.util import loopAlbums, newFix
 from utils.userio import bold, purple
 from internal_types import Issue, Option
 from utils.fs import loadTracks
-from commands.countTagConflicts import detectConflictedTracks, detectMissingTrackCount
+from commands.countTagConflicts import (
+    detectConflictedTracks,
+    detectMissingTrackCount,
+)
 from utils.tagging import getTrackCountTag
 from tidal.rip import rip
 from utils.path import stripRootPath, splitFileName
 from utils.fs import rmDir
 from tidal.tidal import searchAlbum
+from utils.constants import rootDir
 import os
 
 
-def findMissingTracks(rootDir: str) -> list[Issue]:
+def findMissingTracks() -> list[Issue]:
     i = 0
 
     def cb(artist: os.DirEntry, album: os.DirEntry) -> list[Issue]:
@@ -36,10 +40,10 @@ def findMissingTracks(rootDir: str) -> list[Issue]:
         actualCount = len(tracks)
         if actualCount < count:
             issue: Issue = {
-                "data": None,
-                "entry": album,
-                "delta": str(count),
-                "original": str(actualCount),
+                'data': None,
+                'entry': album,
+                'delta': str(count),
+                'original': str(actualCount),
             }
             found.append(issue)
 
@@ -48,62 +52,63 @@ def findMissingTracks(rootDir: str) -> list[Issue]:
     return loopAlbums(rootDir, cb)
 
 
-def process(rootDir):
-    albumsMissingTracks = findMissingTracks(rootDir)
+def process():
+    albumsMissingTracks = findMissingTracks()
 
     def prompt(issue: Issue, index: int, count: int) -> str:
         line1 = (
-            "\n"
-            + "\n"
-            + purple("[fixMissingTracks]:\n")
-            + "Progress: "
+            '\n'
+            + '\n'
+            + purple('[fixMissingTracks]:\n')
+            + 'Progress: '
             + str(index)
-            + "/"
+            + '/'
             + str(count)
-            + "\n"
-            + "Found "
-            + str(issue["original"])
-            + " tracks for album "
-            + issue["entry"].name
-            + ". Expected "
-            + bold(str(issue["delta"]))
-            + " at "
-            + bold(stripRootPath(issue["entry"].path))
+            + '\n'
+            + 'Found '
+            + str(issue['original'])
+            + ' tracks for album '
+            + issue['entry'].name
+            + '. Expected '
+            + bold(str(issue['delta']))
+            + ' at '
+            + bold(stripRootPath(issue['entry'].path))
         )
 
         return line1
 
     def cb(good, issue):
-        rmDir(issue["entry"])
+        rmDir(issue['entry'])
         rip(good)
 
     def makeKey(result):
         return (
             result.artist.name
-            + " - "
+            + ' - '
             + result.name
-            + (" (Explicit)" if result.explicit else "")
-            + " ("
+            + (' (Explicit)' if result.explicit else '')
+            + ' ('
             + str(result.year)
-            + ")"
-            + ": "
+            + ')'
+            + ': '
             + str(result.num_tracks)
-            + " (Available: "
+            + ' (Available: '
             + str(result.tidal_release_date.year)
-            + ")"
+            + ')'
         )
 
     def suggest(issue: Issue) -> list[Option]:
-        album = issue["entry"]
+        album = issue['entry']
         parts = splitFileName(album.path)
         if not parts:
             return []
-        results = searchAlbum(parts["album"], parts["artist"])
+        results = searchAlbum(parts['album'], parts['artist'])
         choices: list[Option] = []
         for result in results:
-            url = "https://listen.tidal.com/album/" + str(result.id)
-            choices.append({"key": "NONE", "value": url,
-                           "display": makeKey(result)})
+            url = 'https://listen.tidal.com/album/' + str(result.id)
+            choices.append(
+                {'key': 'NONE', 'value': url, 'display': makeKey(result)}
+            )
         return choices
 
     return newFix(

@@ -4,21 +4,44 @@
 
 ## Bugs
 
+-   ! Disc numbers
+-   X SkipSimilar for TitleTagFileConflicts should skip album
+    -   ! same for numberTagFileConflicts
+-   ! similarKey for countTagConflicts is wrong
+    -   ! same for missingTrackCounts
+    -   ! same for missingTrackNumbers
+-   ! Case sensitivity is fucked
+-   ! replace: support regex (will require config to work also)
+-   ! conflictedTrackNumbers is kinda useless, can't tell what it's doing
+-   ! AlbumTagConflicts doesn't run
+-   ! Crash in ArtistTagConflicts
 -   ! Tidal search isn't always giving results that it should - also non-english text breaks
--   ! Deal with multi-disc track numbers
+-   ! skipSimilar in duplicate tracks will skip other tracks from the same 2 albums (for dealing with greatest hits, etc)
+-   ! conflictedTrackNumbers: this command is kind of useless, rework entirely
+-   ! add option to update track count in fixMissingTracks
+-   ! only rip missing tracks
+-   ! put in your own url for tidal ripping
+-   Feedback when we add "_1" to a filename
+-   Unicode normalization in central place
+-   Titlecase command
+-   We seem to add numbers in the wrong place if the filename has . in it
+-   Does similar work for yearTagFolderConflicts?
+-   Don't enter the same album more than once in yearTagFolderConflicts
 -   "similar resolution" thing doesn't work for trackDuplicates
--   yearTagFolderConflicts: remove "None"s from options
 -   util.py:152: dedupe options in buildOptions / from suggestions
 -   tagging.py:141: Might need to transform tag values before setting into cache
 -   artistTagFolderConflicts: deduping isn't working
 -   artistTagFolderConflicts: heuristics
 -   replace.py:28: "this breaks when the file doesn't have the special character" - not sure what this means
--   handle file errors / changed paths on featInTitle
 -   numberTagFileConflicts: dedupe options
 -   Incorrect choice numbers when skipping issue options
 -   Issue count is incorrect after skipAllSimilar or ignoreAllSimilar
 -   trailing slashes on rootdir break everything
 -   handle 401 from tidal
+-   X Special characters are jacked up - look up rules for ExFAT
+-   X yearTagFolderConflicts: remove "None"s from options
+-	X strip "the" when comparing artist dupes
+-	X don't add issue if the reverse issue already exists
 
 ## Refactoring
 
@@ -38,10 +61,7 @@
 
 ## Incremental Features
 
--   ! skipSimilar in duplicate tracks will skip other tracks from the same 2 albums (for dealing with greatest hits, etc)
--   ! conflictedTrackNumbers: this command is kind of useless, rework entirely
--   ! add option to update track count in fixMissingTracks
--   ! only rip missing tracks
+-	clean caches command - delete stuff for files that no longer exist
 -   Strip trailing spaces everywhere
 -   strict duplicate track mode that only searches within artist folder for better speed
 -   findMissingYear
@@ -62,14 +82,14 @@
 -   limit option for debugging
 -   highlight stuff we're asking for confirmation on
 -   backup ignorecache before running?
+- 	X Custom issue display (ie. list size for mp3)
 
 ## Big Features
 
--   ! replace: support regex (will require config to work also)
--   ! abstract find & replace
--   ! consider a better flow for dealing with albums with lots of dupes (greatest hits etc)
--   ! "set" command to set arbitrary tag on track / album / artist
--   ! look for deluxe editions etc I don't want
+-   o abstract find & replace
+-   o consider a better flow for dealing with albums with lots of dupes (greatest hits etc)
+-   o "set" command to set arbitrary tag on track / album / artist
+-   o look for deluxe editions etc I don't want
 -   m4a support, since tidal sometimes gives me those
 -   command to ensure title case everywhere (a command somewhere is enforcing title case a side effect; that's bad)
 -   detect extra songs

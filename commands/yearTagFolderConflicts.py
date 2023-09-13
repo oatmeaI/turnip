@@ -8,6 +8,7 @@ from utils.tagging import (
     setYearTag,
 )
 from utils.userio import promptHeader, bold, blue
+from utils.constants import rootDir
 from tidal import tidal
 
 
@@ -37,7 +38,7 @@ def findConflictedAlbumYears(rootDir: str) -> list[Issue]:
     return loopAlbums(rootDir, cb)
 
 
-def process(rootDir: str) -> int:
+def process() -> int:
     conflicts = findConflictedAlbumYears(rootDir)
 
     def suggest(issue: Issue) -> list[Option]:
@@ -96,6 +97,9 @@ def process(rootDir: str) -> int:
             + bold(stripRootPath(issue["entry"].path))
         )
 
+    def similar(issue: Issue):
+        return issue["entry"].name + str(issue["original"]) + ">" + str(issue["delta"])
+
     def heuristic(options: list[Option]) -> Option:
         for option in options:
             if option["value"].isdigit() and int(option["value"]) > 0:
@@ -109,4 +113,5 @@ def process(rootDir: str) -> int:
         prompt=prompt,
         allowEdit=True,
         suggest=suggest,
+        similar=similar
     )

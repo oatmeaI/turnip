@@ -26,7 +26,7 @@ class Entry:
 
     def updatePath(self) -> None:
         newPath = buildFileName(self.parts)
-
+        print(newPath)
         if newPath == self.path:
             return
 

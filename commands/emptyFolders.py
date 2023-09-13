@@ -1,10 +1,33 @@
 import os
-from utils.util import loopArtists
-from utils.fs import loadTracks, loadFolders, rmDir
+from utils.util import loopArtists, loopTracks
+from utils.fs import loadTracks, loadFolders, rmDir, rmFile
 from utils.path import stripRootPath
+from utils.constants import rootDir
+from utils.tagging import getAlbumArtistTag
+
+def fixBrokenFiles() -> int:
+    count  = 0
+    brokenFiles = []
+
+    def cb(artist, album, track: os.DirEntry):
+        try:
+            getAlbumArtistTag(track.path)
+        except Exception as e:
+            print('exception', e)
+            brokenFiles.append(track)
+        return []
+
+    loopTracks(rootDir, cb)
+
+    for track in brokenFiles:
+        rmFile(track.path)
+        count += 1
+
+    return count
 
 
-def findEmptyFolders(rootDir: str) -> list[os.DirEntry]:
+
+def findEmptyFolders() -> list[os.DirEntry]:
     empties: list[os.DirEntry] = []
 
     def isEmpty(dir):
@@ -37,10 +60,10 @@ def findEmptyFolders(rootDir: str) -> list[os.DirEntry]:
     return empties
 
 
-def process(rootDir: str) -> int:
+def process() -> int:
     count = 0
 
-    emptyFolders = findEmptyFolders(rootDir)
+    emptyFolders = findEmptyFolders()
 
     for folder in emptyFolders:
         print("Trashing empty folder -> " + stripRootPath(folder.path))

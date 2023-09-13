@@ -5,6 +5,7 @@ from utils.fs import loadTracks, moveDirFiles
 from utils.tagging import getAlbumTag, setAlbumTag
 from utils.userio import promptHeader, bold, blue
 from utils.path import splitFileName, stripRootPath, setAlbumInPath
+from utils.constants import rootDir
 from tidal import tidal
 
 
@@ -35,7 +36,7 @@ def findConflictedAlbumFolders(rootDir: str) -> list[Issue]:
     return loopAlbums(rootDir, cb)
 
 
-def process(rootDir: str) -> int:
+def process() -> int:
     conflicts = findConflictedAlbumFolders(rootDir)
 
     def suggest(issue: Issue) -> list[Option]:
