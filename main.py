@@ -84,7 +84,7 @@ commands = {
     'featInAlbumArtist': featInAlbumArtist.process,
     'listInAlbumArtist': listInAlbumArtist.process,
     'missingTracks': missingTracks.process,
-    'replace': replace.process,
+    'replace': replace.Replace().process,
 }
 
 

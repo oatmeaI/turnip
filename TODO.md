@@ -38,10 +38,6 @@
 -   Issue count is incorrect after skipAllSimilar or ignoreAllSimilar
 -   trailing slashes on rootdir break everything
 -   handle 401 from tidal
--   X Special characters are jacked up - look up rules for ExFAT
--   X yearTagFolderConflicts: remove "None"s from options
--	X strip "the" when comparing artist dupes
--	X don't add issue if the reverse issue already exists
 
 ## Refactoring
 
