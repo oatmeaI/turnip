@@ -7,12 +7,9 @@ from utils.tagging import (
     getAlbumArtistTag,
 )
 import os
+import re
 from Song import Song
-from utils.util import newFix, loopTracks
 from internal_types import Issue, Option
-from utils.constants import rootDir
-from utils.path import stripRootPath
-from utils.userio import promptHeader, bold, red, green, yellow
 
 
 Replacement = TypedDict(
@@ -22,33 +19,88 @@ Replacement = TypedDict(
         'replace': str,
         'search': Union[str, list[str]],
         'auto': bool,
+        'regex': bool,
     },
 )
 
 replacements: list[Replacement] = [
-    {'find': 'remix', 'replace': 'Remix', 'search': 'all', 'auto': False},
+    {
+        'find': 'remix',
+        'replace': 'Remix',
+        'search': 'all',
+        'auto': False,
+        'regex': False,
+    },
     {
         'find': ' (Album Version) [Album Version]/Album Version',
         'replace': '',
         'search': 'all',
         'auto': True,
+        'regex': False,
     },
-    {'find': ' (Album Version)', 'replace': "", 'search': 'all', 'auto': True},
-    {'find': '’', 'replace': "'", 'search': 'all', 'auto': True},
+    {
+        'find': r'( [\(\[]Album Version[\)\]])',
+        'replace': '',
+        'search': 'all',
+        'auto': True,
+        'regex': True,
+    },
+    {
+        'find': '’',
+        'replace': "'",
+        'search': 'all',
+        'auto': True,
+        'regex': False,
+    },
     {
         'find': '“',
         'replace': '"',
         'search': 'all',
         'auto': True,
+        'regex': False,
     },
-    {'find': '”', 'replace': '"', 'search': 'all', 'auto': True},
+    {
+        'find': '”',
+        'replace': '"',
+        'search': 'all',
+        'auto': True,
+        'regex': False,
+    },
+    {
+        'find': ' [Song   Album Version]/Song   Album Version',
+        'replace': '',
+        'search': 'all',
+        'auto': True,
+        'regex': False,
+    },
+    {
+        'find': '/Album Version',
+        'replace': '',
+        'search': 'all',
+        'auto': True,
+        'regex': False,
+    },
+    {
+        'find': ' (Explicit)',
+        'replace': '',
+        'search': 'all',
+        'auto': True,
+        'regex': False,
+    },
+    {
+        'find': r'( \(.* [Rr]emaster .*\))',
+        'replace': '',
+        'search': 'all',
+        'auto': False,
+        'regex': True,
+    },
 ]
 
 TagFunc = TypedDict(
     'TagFunc',
     {
         'get': Callable[[str], str | None],
-        'set': Callable[[os.DirEntry, str], None],
+        'set': Callable[[Song, str], None],
     },
 )
 
@@ -92,9 +144,25 @@ class Replace(TrackCommand):
                 )
 
             for tag in tags:
-                if tag['value'] and replacement['find'] in tag['value']:
-                    replaced = tag['value'].replace(
-                        replacement['find'], replacement['replace']
+                if not tag['value']:
+                    continue
+
+                find = (
+                    replacement['find']
+                    if not replacement['regex']
+                    else re.compile(replacement['find'])
+                )
+                matched = (
+                    replacement['find'] in tag['value']
+                    if not replacement['regex']
+                    else find.search(tag['value'])
+                )
+
+                if tag['value'] and matched:
+                    replaced = (
+                        tag['value'].replace(find, replacement['replace'])
+                        if not replacement['regex']
+                        else find.sub(replacement['replace'], tag['value'])
                     )
                     issue: Issue = {
                         'entry': track,
@@ -120,87 +188,3 @@ class Replace(TrackCommand):
         print('Updating ' + track.path + ' - setting ' + tag + ' to ' + good)
         song = Song(track.path)
         tagFuncs[tag]['set'](song, good)
-
-
-def findReplacements(rootDir: str) -> list[Issue]:
-    def cb(
-        artist: os.DirEntry, album: os.DirEntry, track: os.DirEntry
-    ) -> list[Issue]:
-        found: list[Issue] = []
-
-        for replacement in replacements:
-            searches = (
-                tagFuncs.keys()
-                if replacement['search'] == 'all'
-                else replacement['search']
-            )
-
-            tags = []
-            for search in searches:
-                tags.append(
-                    {
-                        'tag': search,
-                        'value': tagFuncs[search]['get'](track.path),
-                    }
-                )
-
-            for tag in tags:
-                if tag['value'] and replacement['find'] in tag['value']:
-                    replaced = tag['value'].replace(
-                        replacement['find'], replacement['replace']
-                    )
-                    issue: Issue = {
-                        'entry': track,
-                        'delta': replaced,
-                        'original': tag['value'],
-                        'data': tag['tag'],
-                    }
-                    if 'auto' not in replacement or not replacement['auto']:
-                        issue['original'] = tag['value']
-                    found.append(issue)
-        return found
-
-    return loopTracks(rootDir, cb)
-
-
-def process() -> int:
-    issues = findReplacements(rootDir)
-
-    def prompt(issue: Issue, index: int, count: int) -> str:
-        return (
-            promptHeader('replace', index, count)
-            + '\n'
-            + 'Replacement found at '
-            + bold(stripRootPath(issue['entry'].path))
-            + '\n'
-            + 'Replace '
-            + red(issue['original'] or '')
-            + ' with '
-            + green(issue['delta'] or '')
-            + ' in '
-            + yellow((issue['data'] or ''))
-            + '?'
-        )
-
-    # print some info about what's current and what's new so I can know if I should skip or apply
-    def cb(good: str, issue: Issue) -> None:
-        track = issue['entry']
-        if not os.path.exists(track):
-            return
-        tag = issue['data']
-        if not tag:
-            return
-        print('Updating ' + track.path + ' - setting ' + tag + ' to ' + good)
-        song = Song(track.path)
-        tagFuncs[tag]['set'](song, good)
-
-    def heuristic(options: list[Option]) -> Option:
-        return options[1]
-
-    return newFix(
-        issues=issues,
-        prompt=prompt,
-        callback=cb,
-        allowEdit=True,
-        heuristic=heuristic,
-    )

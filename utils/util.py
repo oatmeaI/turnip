@@ -24,8 +24,8 @@ def loopArtists(rootDir: str, cb: Callable[[os.DirEntry], list]) -> list:
         if i > 1:
             sys.stdout.write('\033[F')
             sys.stdout.write('\033[K')
-        # if i > 150:
-        #    return results
+        # if i > 1:
+        # return results
         print(i, '/', len(artists), artist.name)
     return results
 

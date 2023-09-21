@@ -11,7 +11,6 @@
     -   ! same for missingTrackCounts
     -   ! same for missingTrackNumbers
 -   ! Case sensitivity is fucked
--   ! replace: support regex (will require config to work also)
 -   ! conflictedTrackNumbers is kinda useless, can't tell what it's doing
 -   ! AlbumTagConflicts doesn't run
 -   ! Crash in ArtistTagConflicts
@@ -21,6 +20,7 @@
 -   ! add option to update track count in fixMissingTracks
 -   ! only rip missing tracks
 -   ! put in your own url for tidal ripping
+-   Replace: use regex for partial replacements? Not sure if I need this but it seems useful
 -   Feedback when we add "_1" to a filename
 -   Unicode normalization in central place
 -   Titlecase command
