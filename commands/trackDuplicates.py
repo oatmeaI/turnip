@@ -48,6 +48,8 @@ class TrackDuplicates(Command):
         return stripRootPath(optionValue) + ' (' + str(fileSize) + 'mb)'
 
     def similar(self, issue: Issue) -> str:
+        # TODO - this doesn't work, so breaking it
+        return False
         originalParts = splitFileName(issue['original'] or '')
         deltaParts = splitFileName(issue['delta'] or '')
 

@@ -1,6 +1,46 @@
 import os
 from utils.fs import loadTracks, loadFolders
 from utils.util import loopArtists
+from utils.constants import rootDir
+from Command import Command
+from internal_types import Issue
+
+
+class FolderStructure(Command):
+    cta = "Found an issue with the folder structure"
+
+    def similar(self, issue):
+        return False
+
+    def checkStructure(self, artist: os.DirEntry) -> list[Issue]:
+        found: list[Issue] = []
+        tracks = loadTracks(artist.path)
+        if len(tracks) > 0:
+            artistIssue: Issue = {
+                    "entry": artist,
+                    "delta": "Create unnamed album",
+                    "original": "Ignore",
+                    "data": "artist"
+                    }
+            found.append(artistIssue)
+
+        albums = loadFolders(artist.path)
+        for album in albums:
+            subDirs = loadFolders(album.path)
+            if len(subDirs) > 0:
+                issue: Issue = {
+                    "entry": album,
+                    "data": "album",
+                    "original": "Ignore",
+                    "delta": "Move to album root"
+                }
+                found.append(issue)
+
+        return found
+
+    def findIssues(self) -> list[Issue]:
+        return loopArtists(rootDir, self.checkStructure)
+
 
 
 def verify(rootDir: str) -> None:

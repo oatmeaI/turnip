@@ -12,7 +12,7 @@ from tidal import tidal
 
 
 class ArtistTagFolderConflicts(Command):
-    cta = "Conflict between artist tags and artist folder for album"
+    cta = "Conflict between album artist tags and artist folder for album"
 
     def findIssues(self) -> list[Issue]:
         def cb(artist, album) -> list[Issue]:

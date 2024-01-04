@@ -57,7 +57,7 @@ def loopTracks(
 
 
 def compare(a: os.DirEntry, b: os.DirEntry) -> int:
-    THRESHOLD = 70
+    THRESHOLD = 80
     aParts = stripRootPath(a.path).split('/')
     bParts = stripRootPath(b.path).split('/')
     ratio = 0
@@ -86,6 +86,11 @@ def compare(a: os.DirEntry, b: os.DirEntry) -> int:
         return ratio > THRESHOLD
 
     if pathType == 3:  # Track
+        # Only detect dupes in same album - TODO - put this in a flag
+        albumAScrubbed = splitFileName(a.path)['album'].lower()
+        albumBScrubbed = splitFileName(b.path)['album'].lower()
+        albumRatio = fuzz.ratio(albumAScrubbed, albumBScrubbed)
+
         titleAScrubbed = aParts[2].lower()
         titleBScrubbed = bParts[2].lower()
 
@@ -97,7 +102,8 @@ def compare(a: os.DirEntry, b: os.DirEntry) -> int:
             return False
 
         ratio = fuzz.ratio(titleAScrubbed, titleBScrubbed)
-        if ratio > THRESHOLD:
+        if ratio > THRESHOLD and albumRatio > THRESHOLD:
+            return True
             aLength = getTrackTime(a)
             bLength = getTrackTime(b)
             dupe = abs(aLength - bLength) < max(
@@ -337,7 +343,7 @@ def newFix(
 
         similarKey = similar(issue)
         skipKey = skip(issue) if skip else similarKey
-        if similarKey in resolutions:
+        if similarKey and similarKey in resolutions:
             print(
                 'Similar resolution recorded for '
                 + red(issue['original'] or '')

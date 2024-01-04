@@ -10,6 +10,7 @@ from commands import albumTagConflicts
 from commands import albumTagFolderConflicts
 from commands import yearTagFolderConflicts
 from commands.titleTagFileConflicts import TitleTagFileConflicts
+from commands.folderStructure import FolderStructure
 from commands import numberTagFileConflicts
 from commands import countTagConflicts
 from commands import missingTrackCounts
@@ -28,7 +29,7 @@ from utils.constants import rootDir
 def clean():
     count = 0
 
-    folderStructure.verify(rootDir)
+    FolderStructure().process()
     count = emptyFolders.process()
 
     count += artistDuplicates.ArtistDuplicates().process()
@@ -41,7 +42,7 @@ def clean():
     count += albumTagFolderConflicts.process()
     count += yearTagFolderConflicts.process()
 
-    count += featInTitle.process(rootDir)
+    count += featInTitle.process()
 
     count += TitleTagFileConflicts().process()
     count += numberTagFileConflicts.process(rootDir)

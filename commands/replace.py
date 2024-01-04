@@ -88,8 +88,22 @@ replacements: list[Replacement] = [
         'regex': False,
     },
     {
-        'find': r'( \(.* [Rr]emaster .*\))',
+        'find': r'( \([^\)]*[Rr]emaster[^\)]*\))',
         'replace': '',
+        'search': 'all',
+        'auto': False,
+        'regex': True,
+    },
+    {
+        'find': r'(.*) - (.* [rR]emix)',
+        'replace': r'\1 (\2)',
+        'search': 'all',
+        'auto': False,
+        'regex': True,
+    },
+    {
+        'find': r' (\(.*\) )?\[(.*)\][/_].*',
+        'replace': [r' (\2)', ''],
         'search': 'all',
         'auto': False,
         'regex': True,
@@ -123,6 +137,7 @@ tagFuncs: Dict[str, TagFunc] = {
 class Replace(TrackCommand):
     cta = 'Replace found'
     allowEdit = True
+    suggestions = {}
 
     def detectIssue(self, artist, album, track) -> list[Issue]:
         found: list[Issue] = []
@@ -155,15 +170,41 @@ class Replace(TrackCommand):
                 matched = (
                     replacement['find'] in tag['value']
                     if not replacement['regex']
-                    else find.search(tag['value'])
+                    else re.search(find, tag['value'])
                 )
 
+                suggest = None
                 if tag['value'] and matched:
-                    replaced = (
-                        tag['value'].replace(find, replacement['replace'])
-                        if not replacement['regex']
-                        else find.sub(replacement['replace'], tag['value'])
-                    )
+                    if type(replacement['replace']) is list:
+                        replaced = (
+                            tag['value'].replace(
+                                find, replacement['replace'][0]
+                            )
+                            if not replacement['regex']
+                            else re.sub(
+                                find, replacement['replace'][0], tag['value']
+                            )
+                        )
+                        suggest = (
+                            tag['value'].replace(
+                                find, replacement['replace'][1]
+                            )
+                            if not replacement['regex']
+                            else re.sub(
+                                find, replacement['replace'][1], tag['value']
+                            )
+                        )
+                        self.suggestions[
+                            track.path + tag['value'] + replaced + tag['tag']
+                        ] = suggest
+                    else:
+                        replaced = (
+                            tag['value'].replace(find, replacement['replace'])
+                            if not replacement['regex']
+                            else re.sub(
+                                find, replacement['replace'], tag['value']
+                            )
+                        )
                     issue: Issue = {
                         'entry': track,
                         'delta': replaced,
@@ -174,6 +215,18 @@ class Replace(TrackCommand):
                         issue['original'] = tag['value']
                     found.append(issue)
         return found
+
+    def suggest(self, issue):
+        key = (
+            issue['entry'].path
+            + issue['original']
+            + issue['delta']
+            + issue['data']
+        )
+        if key in self.suggestions:
+            suggest = self.suggestions[key]
+            return [{'key': suggest, 'value': suggest}]
+        return []
 
     def heuristic(self, options: list[Option]) -> Option:
         return options[1]

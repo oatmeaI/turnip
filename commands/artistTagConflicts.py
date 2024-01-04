@@ -42,7 +42,7 @@ class ArtistTagConflicts(Command):
 
         return loopArtists(rootDir, cb)
 
-    def callback(good: str, issue: Issue):
+    def callback(self, good: str, issue: Issue):
         artist = issue["entry"]
         albums = loadFolders(artist.path)
         for path in albums:

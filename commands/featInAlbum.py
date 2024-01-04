@@ -1,6 +1,7 @@
 import re
 import os
 from internal_types import Issue, Option
+from utils.constants import rootDir
 from utils.userio import bold, promptHeader, confirm
 from utils.constants import featPattern
 from utils.util import newFix, loopTracks, getInput
@@ -40,7 +41,7 @@ def findFeatInAlbum(rootDir: str) -> list[Issue]:
     return loopTracks(rootDir, cb)
 
 
-def process(rootDir: str) -> int:
+def process() -> int:
     issues = findFeatInAlbum(rootDir)
 
     def cb(good, issue: Issue) -> None:
