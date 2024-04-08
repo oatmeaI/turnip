@@ -5,6 +5,7 @@ from utils.tagging import (
     getTitleTag,
     getArtistTag,
     getAlbumArtistTag,
+    getAlbumTag
 )
 import os
 import re
@@ -88,6 +89,13 @@ replacements: list[Replacement] = [
         'regex': False,
     },
     {
+        'find': ' [Explicit]',
+        'replace': '',
+        'search': 'all',
+        'auto': True,
+        'regex': False,
+    },
+    {
         'find': r'( \([^\)]*[Rr]emaster[^\)]*\))',
         'replace': '',
         'search': 'all',
@@ -96,6 +104,13 @@ replacements: list[Replacement] = [
     },
     {
         'find': r'(.*) - (.* [rR]emix)',
+        'replace': r'\1 (\2)',
+        'search': 'all',
+        'auto': False,
+        'regex': True,
+    },
+    {
+        'find': r'(.*) \[(.*[rR]emix)\]',
         'replace': r'\1 (\2)',
         'search': 'all',
         'auto': False,
@@ -130,6 +145,10 @@ tagFuncs: Dict[str, TagFunc] = {
     'albumArtist': {
         'get': getAlbumArtistTag,
         'set': lambda t, newArtist: t.setAlbumArtist(newArtist),
+    },
+    'album': {
+        'get': getAlbumTag,
+        'set': lambda t, newAlbum: t.setAlbum(newAlbum),
     },
 }
 

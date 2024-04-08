@@ -2,7 +2,6 @@ import os
 import re
 import shutil
 from utils.constants import rootDir
-from typing import Union
 
 
 def loadFolders(path: str) -> list[os.DirEntry]:
@@ -18,7 +17,7 @@ def loadTracks(path: str) -> list[os.DirEntry]:
     tracks = list(
         filter(
             lambda d: d.is_file()
-            and (d.name.endswith('mp3') or d.name.endswith('flac')),
+            and (d.name.endswith('mp3') or d.name.endswith('flac') or d.name.endswith('m4a')),
             dir,
         )
     )

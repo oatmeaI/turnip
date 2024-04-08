@@ -1,7 +1,9 @@
 import os
 from Command import Command
 from Album import Album
+from Artist import Artist
 from internal_types import Issue
+from utils.path import unsanitize
 from utils.util import loopAlbums
 from utils.fs import loadTracks
 from utils.tagging import getAlbumArtistTag
@@ -17,15 +19,17 @@ class ArtistFolderConflicts(Command):
         def cb(artist, album) -> list[Issue]:
             found: list[Issue] = []
             tracks = loadTracks(album)
+            iAlbum = Album(album.path) # TODO bad variable name
+            folderName = iAlbum.getAlbumArtist()
             for track in tracks:
                 artistTag = getAlbumArtistTag(track.path)
                 issue: Issue = {
-                    'data': None,
+                    'data': artist.path,
                     'entry': album,
-                    'original': artist.name,
+                    'original': folderName,
                     'delta': artistTag,
                 }
-                if artistTag != artist.name and issue not in found:
+                if artistTag != unsanitize(folderName, artistTag) and issue not in found:
                     found.append(issue)
             return found
 
@@ -56,6 +60,13 @@ class ArtistFolderConflicts(Command):
         return True
 
     def callback(self, good, issue: Issue) -> None:
-        albumPath = issue['entry']
-        album = Album(albumPath.path)
-        album.setAlbumArtist(good)
+        if good == issue['original']:
+            # We're updating tags
+            albumPath = issue['entry']
+            album = Album(albumPath.path)
+            album.setAlbumArtist(good)
+        else:
+            # We're updating filepath; do it at the artist folder level
+            artist = issue['data']
+            artist = Artist(artist)
+            artist.setName(good)

@@ -16,16 +16,23 @@ def stripRootPath(string: str):
 
 def sanitizePathSegment(segment: str) -> str:
     replacement = '_'
+    replacements = {
+        ':': '|',
+        '/': "\\"
+    }
 
     if segment.startswith('.'):
         segment = replacement + segment[1:]
 
-    return segment.replace('/', replacement).replace(':', replacement)[:254]
+    for key in replacements:
+        segment = segment.replace(key, replacements[key])
+
+    return segment[:254]
 
 
 def joinPath(parts: list[str]) -> str:
-    seperator = '/'
-    path = seperator.join(parts)
+    separator = '/'
+    path = separator.join(parts)
     return path
 
 

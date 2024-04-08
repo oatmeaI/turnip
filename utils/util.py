@@ -280,6 +280,7 @@ def newFix(
     i = 0
     skipSimilar = []
     resolutions = {}
+    shouldUseSimilar = []
 
     def shouldProcess(issue: Issue) -> bool:
         ignoreIssue = copy.copy(issue)
@@ -344,6 +345,9 @@ def newFix(
         similarKey = similar(issue)
         skipKey = skip(issue) if skip else similarKey
         if similarKey and similarKey in resolutions:
+            if similarKey in shouldUseSimilar:
+                callback(resolutions[similarKey], issue)
+                continue
             print(
                 'Similar resolution recorded for '
                 + red(issue['original'] or '')
@@ -352,6 +356,9 @@ def newFix(
             )
             useSimilar = confirm('Would you like to use this?', default=True)
             if useSimilar:
+                alwaysUseSimilar = confirm("Would you like to use this for all similar issues?", default=True)
+                if alwaysUseSimilar:
+                    shouldUseSimilar.append(similarKey)
                 callback(resolutions[similarKey], issue)
                 continue
 

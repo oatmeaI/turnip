@@ -1,3 +1,4 @@
+import unicodedata
 from utils.util import loadTracks
 from utils.tagging import setAlbumTag, setAlbumArtistTag, getAlbumArtistTag
 from Entry import Entry
@@ -28,6 +29,9 @@ class Album(Entry):
         if (self.parts["artist"] != albumArtist):
             self.parts["artist"] = albumArtist
             self.updatePath()
+
+    def getAlbumArtist(self) -> str:
+        return unicodedata.normalize('NFC', self.parts["artist"])
 
     def setTitle(self, title: str) -> None:
         self.parts["album"] = title

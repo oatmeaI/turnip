@@ -48,8 +48,8 @@ def clean():
     count += numberTagFileConflicts.process(rootDir)
     count += featInAlbumArtist.process(rootDir)
     count += listInAlbumArtist.process(rootDir)
-    count += featInAlbum.process(rootDir)
-    count += replace.process()
+    count += featInAlbum.process()
+    count += replace.Replace().process()
 
     count += countTagConflicts.process(rootDir)
     count += missingTrackCounts.process(rootDir)

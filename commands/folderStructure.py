@@ -1,5 +1,5 @@
 import os
-from utils.fs import loadTracks, loadFolders
+from utils.fs import loadTracks, loadFolders, moveDirFiles
 from utils.util import loopArtists
 from utils.constants import rootDir
 from Command import Command
@@ -40,6 +40,14 @@ class FolderStructure(Command):
 
     def findIssues(self) -> list[Issue]:
         return loopArtists(rootDir, self.checkStructure)
+
+    def callback(self, good, issue: Issue) -> None:
+        if (good == "Ignore"):
+            return # TODO - cache this
+        if (good == "Move to album root"):
+            subDirs = loadFolders(issue["entry"].path)
+            for dir in subDirs:
+                moveDirFiles(dir.path, issue["entry"].path)
 
 
 

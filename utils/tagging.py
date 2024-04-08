@@ -40,57 +40,77 @@ tagNames = {
 }
 
 tagNameMap = {}
-tagNameMap[tagNames['trackNumber']] = {'MP3': 'TRCK', 'FLAC': 'TRACKNUMBER'}
-tagNameMap[tagNames['trackCount']] = {'MP3': 'TRCK', 'FLAC': 'TRACKTOTAL'}
+tagNameMap[tagNames['trackNumber']] = {
+    'MP3': 'TRCK',
+    'FLAC': 'TRACKNUMBER',
+    'MP4': 'trkn'
+}
+tagNameMap[tagNames['trackCount']] = {
+    'MP3': 'TRCK',
+    'FLAC': 'TRACKTOTAL',
+    'MP4': 'trkn'
+}
 tagNameMap[tagNames['album']] = {
     'MP3': 'TALB',
     'FLAC': 'ALBUM',
+    'MP4': '\xa9alb'
 }
 tagNameMap[tagNames['albumArtist']] = {
     'MP3': 'TPE2',
     'FLAC': 'ALBUMARTIST',
+    'MP4': 'aART'
 }
 tagNameMap[tagNames['year']] = {
     'MP3': 'TDRC',
     'FLAC': 'YEAR',
+    'MP4': '\xa9day'
 }
 tagNameMap[tagNames['title']] = {
     'MP3': 'TIT2',
     'FLAC': 'TITLE',
+    'MP4': '\xa9nam'
 }
 tagNameMap[tagNames['artist']] = {
     'MP3': 'TPE1',
     'FLAC': 'ARTIST',
+    'MP4': '\xa9ART'
 }
 
 tagSetMap = {}
 tagSetMap[tagNames['trackNumber']] = {
     'MP3': lambda value: mutagen.id3.TRCK(encoding=3, text=value),
     'FLAC': lambda value: value,
+    'MP4': lambda value: value,
 }
 tagSetMap[tagNames['trackCount']] = {
     'MP3': lambda value: mutagen.id3.TRCK(encoding=3, text=value),
     'FLAC': lambda value: value,
+    'MP4': lambda value: value,
 }
 tagSetMap[tagNames['album']] = {
     'MP3': lambda value: mutagen.id3.TALB(encoding=3, text=value),
     'FLAC': lambda value: value,
+    'MP4': lambda value: value,
 }
 tagSetMap[tagNames['albumArtist']] = {
     'MP3': lambda value: mutagen.id3.TPE2(encoding=3, text=value),
     'FLAC': lambda value: value,
+    'MP4': lambda value: value,
 }
 tagSetMap[tagNames['year']] = {
     'MP3': lambda value: mutagen.id3.TDRC(encoding=3, text=value),
     'FLAC': lambda value: value,
+    'MP4': lambda value: value,
 }
 tagSetMap[tagNames['title']] = {
     'MP3': lambda value: mutagen.id3.TIT2(encoding=3, text=value),
     'FLAC': lambda value: value,
+    'MP4': lambda value: value,
 }
 tagSetMap[tagNames['artist']] = {
     'MP3': lambda value: mutagen.id3.TPE1(encoding=3, text=value),
     'FLAC': lambda value: value,
+    'MP4': lambda value: value,
 }
 
 tagObjectMap = {
@@ -134,7 +154,7 @@ def getTag(tagName: str, track: str) -> Optional[str]:
 
 
 def setTag(tagName: str, value: str, track: str):
-    try:
+    # try:
         # track = _track.replace("”", '"').replace("“", '"').replace("\\'", "'")
         f = mutagen.File(track)
         tagKey = tagNameMap[tagName][type(f).__name__]
@@ -149,8 +169,9 @@ def setTag(tagName: str, value: str, track: str):
             tagCache[track] = {}
             tagCache[track][tagName] = value
         writeTagCache()
-    except:
-        return
+    # except Exception as e:
+        # print('boo', e)
+        # return
 
 
 def getAlbumTag(track: str) -> Optional[str]:

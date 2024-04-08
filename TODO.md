@@ -5,6 +5,10 @@
 ## Bugs
 
 - ! Deal with special characters
+- albumArtist / artist conflicts?
+- recognize pt. 1 / pt. 2 etc
+- fix dupe detection wrt mahavishnu orchestra
+- find instrumentals / deluxes and remove
 - ! too many tidal results
 - ! Disc numbers
 - ! SkipSimilar for trackDuplicates should skip album
@@ -43,6 +47,9 @@
 
 ## Refactoring
 
+x on similar prompt, give an option to say yes to all
+
+- find compilations / various artists that are split
 - Compilation albums have various years, that's probably good...?
 - Dupe detection should be smarter about pt. 1 / 2 etc
 - Should replace happen before everything else as it would help identify duplicates etc?

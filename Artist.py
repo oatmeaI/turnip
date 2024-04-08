@@ -9,9 +9,9 @@ class Artist(Entry):
         super(Artist, self).__init__(path)
         self.albums = loadFolders(path)
         self.tracks = []
-        map(lambda album: self.tracks.append(loadTracks(album.path)))
+        map(lambda album: self.tracks.append(loadTracks(album.path)), self.albums)
 
     def setName(self, name: str) -> None:
         self.parts["artist"] = name
         self.updatePath()
-        map(lambda f: setAlbumArtistTag(f, name))
+        map(lambda f: setAlbumArtistTag(f, name), self.tracks)
