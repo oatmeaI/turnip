@@ -10,6 +10,7 @@ class Command:
     allowEdit = False
     skipIssueValues = False
     suggestionLimit = 3
+    # TODO add hint for what "similar" means
 
     def similar(self, issue: Issue) -> str:
         return (issue['original'] or '') + '>' + (issue['delta'] or '')
@@ -39,7 +40,7 @@ class Command:
         return stripRootPath(optionValue)
 
     def prompt(self, issue: Issue, index: int, count: int):
-        return f"{promptHeader(self.__class__.__name__, index, count)}\n{self.cta} {stripRootPath(issue['entry'].path)}"
+        return f"{promptHeader(self.__class__.__name__, index, count)}\n{self.cta} {stripRootPath(issue['entry'].path.realPath)}"
 
     def process(self) -> int:
         print('\n' + formatCommandName(self.__class__.__name__))

@@ -77,7 +77,7 @@ commands = {
     'featInTitle': featInTitle.process,
     'featInAlbum': featInAlbum.process,
     'titleTagFileConflicts': TitleTagFileConflicts().process,
-    'numberTagFileConflicts': numberTagFileConflicts.process,
+    'numberTagFileConflicts': numberTagFileConflicts.NumberTagFileConflicts().process,
     'countTagConflicts': countTagConflicts.process,
     'missingTrackCounts': missingTrackCounts.process,
     'conflictedTrackNumbers': conflictedTrackNumbers.process,

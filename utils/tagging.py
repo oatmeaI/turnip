@@ -1,8 +1,11 @@
+from mutagen.flac import FLAC
+from mutagen.mp3 import MP3
+from mutagen.mp4 import MP4
 import mutagen
+import pathlib
 import pickle
 import os
 from typing import Optional
-from typing_extensions import TypedDict
 
 
 def readTagCache():
@@ -27,7 +30,6 @@ def writeTagCache():
 # file = open("./tagCache.json", "w")
 # json.dump(tagCache, file)
 # file.close()
-
 
 tagNames = {
     'trackNumber': 'trackNumber',
@@ -119,33 +121,49 @@ tagObjectMap = {
 }
 
 
+def _openFile(track: str, fileEnding: str):
+    try:
+        match fileEnding:
+            case '.mp3':
+                metadata = MP3(track)
+            case '.m4a':
+                metadata = MP4(track)
+            case '.flac':
+                metadata = FLAC(track)
+            case _:
+                raise Exception('Not recognized')
+        return metadata, fileEnding
+    except Exception as e:
+        print(track, e)
+        return
+
 def getTag(tagName: str, track: str) -> Optional[str]:
     global i
     # print(i)
+    # print(openFile(track).getAlbumArtist(), track)
     if track in tagCache and tagName in tagCache[track]:
         return tagCache[track][tagName]
 
     if track not in tagCache:
         tagCache[track] = {}
 
-    try:
-        f = mutagen.File(track)
-    except:
-        print(track)
+    fileEnding = pathlib.Path(track).suffix
+    metadata = _openFile(track, fileEnding)
+    if not metadata:
         return
 
     for tag in tagNames:
-        mappedTagName = tagNameMap[tag][type(f).__name__]
+        mappedTagName = tagNameMap[tag][fileEnding]
         try:
-            f.tags[mappedTagName]
-        except Exception as e:
+            metadata[mappedTagName]
+        except Exception:
             tagCache[track][tag] = None
             continue
 
         tagContent = str(
-            f.tags[mappedTagName]
-            if not hasattr(f.tags[mappedTagName], '__len__')
-            else f.tags[mappedTagName][0]
+            metadata[mappedTagName]
+            if not hasattr(metadata[mappedTagName], '__len__')
+            else metadata[mappedTagName][0]
         )
         tagCache[track][tag] = tagContent
 
@@ -155,20 +173,20 @@ def getTag(tagName: str, track: str) -> Optional[str]:
 
 def setTag(tagName: str, value: str, track: str):
     # try:
-        # track = _track.replace("”", '"').replace("“", '"').replace("\\'", "'")
-        f = mutagen.File(track)
-        tagKey = tagNameMap[tagName][type(f).__name__]
-        if not f.tags:
-            f.tags = tagObjectMap[type(f).__name__]()
-        f.tags[tagKey] = tagSetMap[tagName][type(f).__name__](value)
+    # track = _track.replace("”", '"').replace("“", '"').replace("\\'", "'")
+    f = mutagen.File(track)
+    tagKey = tagNameMap[tagName][type(f).__name__]
+    if not f.tags:
+        f.tags = tagObjectMap[type(f).__name__]()
+    f.tags[tagKey] = tagSetMap[tagName][type(f).__name__](value)
 
-        f.save(track)
-        if track in tagCache:
-            tagCache[track][tagName] = value
-        else:
-            tagCache[track] = {}
-            tagCache[track][tagName] = value
-        writeTagCache()
+    f.save(track)
+    if track in tagCache:
+        tagCache[track][tagName] = value
+    else:
+        tagCache[track] = {}
+        tagCache[track][tagName] = value
+    writeTagCache()
     # except Exception as e:
         # print('boo', e)
         # return

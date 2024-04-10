@@ -28,7 +28,7 @@ def chooseFromList(options: list[Option]) -> str:
         choices[option["key"]] = option["value"]
 
         key = option["key"] if option["key"] else "<cr>"
-        display = option["display"] if "display" in option else option["value"]
+        display = option["display"] #if option.display or "display" in option else option["value"]
         output = bold(str(display)) if key == "<cr>" else str(display)
 
         print(key + ": " + output + ",")

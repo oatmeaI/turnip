@@ -59,8 +59,8 @@ def moveDirFiles(fromDir: str, toDir: str) -> None:
         i = 1
         while os.path.exists(destination):
             if fileName.find('.') > 0:
-                name = fileName[0 : fileName.index('.')]
-                extension = fileName[fileName.index('.') :]
+                name = fileName[0: fileName.index('.')]
+                extension = fileName[fileName.index('.'):]
                 destination = toDir + '/' + name + '_' + str(i) + extension
             else:
                 destination = toDir + '/' + fileName + '_' + str(i)

@@ -2,7 +2,6 @@ from titlecase import titlecase
 from internal_types import Issue, Option
 from Command import TrackCommand
 from Song import Song
-from utils.tagging import getTitleTag
 from utils.path import splitFileName
 from tidal import tidal
 import os
@@ -19,19 +18,17 @@ class TitleTagFileConflicts(TrackCommand):
     cta = 'Conflict between track name and file name for: '
     allowEdit = True
 
-    def detectIssue(self, artist, album, track):
+    def detectIssue(self, artist, album, trackPath: os.DirEntry) -> list[Issue]:
         found: list[Issue] = []
-        parts = splitFileName(track.path)
-        if not parts:
-            return found
-        fileName = unicodedata.normalize('NFD', str(parts['title']))
-        tagName = unicodedata.normalize('NFD', str(getTitleTag(track.path)))
+        track = Song(trackPath.path)
+        fileName = unicodedata.normalize('NFD', str(track.path.title))
+        tagName = unicodedata.normalize('NFD', str(track.tags._getTitle()))
 
         if fileName != tagName:
             found.append(
                 {
                     'data': None,
-                    'entry': track,
+                    'entry': trackPath,
                     'original': tagName,
                     'delta': fileName,
                 }
@@ -43,7 +40,7 @@ class TitleTagFileConflicts(TrackCommand):
 
     def skip(self, issue: Issue) -> str:
         track = Song(issue['entry'].path)
-        return track.parts['album'] if track.parts else ''
+        return track.path.album if track.path else ''
 
     def suggest(self, issue: Issue) -> list[Option]:
         entry = issue['entry']
@@ -88,7 +85,7 @@ class TitleTagFileConflicts(TrackCommand):
             )
         return suggestions
 
-    def heuristic(self, options) -> Option:
+    def heuristic(self, options: list[Option]) -> Option:
         scores = []
         for option in options:
             score = 0

@@ -1,41 +1,51 @@
 import unicodedata
+from Song import Song
 from utils.util import loadTracks
-from utils.tagging import setAlbumTag, setAlbumArtistTag, getAlbumArtistTag
+from utils.tagging import setYearTag
 from Entry import Entry
 
 
 class Album(Entry):
+    tracks: list[Song]
+
     def __init__(self, path: str):
         super(Album, self).__init__(path)
-        self.tracks = loadTracks(path)
 
-    def setTrackCount(self, count: int) -> None:
-        None
-        # for track in tracks set count
-
-    def setYear(self, year: int) -> None:
-        self.parts["year"] = year
-        # build new path
-        # rename / move
-        # For each track in tracks set year
-
-    def setAlbumArtist(self, albumArtist: str) -> None:
-        for track in self.tracks:
-            albumArtistTag = getAlbumArtistTag(track.path)
-            if (albumArtistTag == albumArtist):
-                continue
-            setAlbumArtistTag(track.path, albumArtist)
-            self.printPropUpdate('albumArtist', albumArtist)
-        if (self.parts["artist"] != albumArtist):
-            self.parts["artist"] = albumArtist
-            self.updatePath()
+        self.tracks = []
+        for track in loadTracks(path):
+            self.tracks.append(Song(track.path))
 
     def getAlbumArtist(self) -> str:
         return unicodedata.normalize('NFC', self.parts["artist"])
 
+    def getAlbumTitle(self) -> str:
+        return unicodedata.normalize('NFC', self.parts["album"])
+
+    def setTrackCount(self, count: int) -> None:
+        # TODO
+        return None
+        # for track in tracks set count
+
+    def setYear(self, year: int) -> None:
+        self.parts["year"] = str(year)
+
+        for track in self.tracks:
+            setYearTag(track.path, str(year))
+
+        self.updatePath()
+
+    def setAlbumArtist(self, albumArtist: str) -> None:
+        self.parts["artist"] = albumArtist
+
+        for track in self.tracks:
+            track.tags.setAlbumArtist(albumArtist)
+
+        self.updatePath()
+
     def setTitle(self, title: str) -> None:
         self.parts["album"] = title
-        # TODO - this is a pattern that I'm repeating a lot; maybe I can
-        # abstract it somewhere? Also, don't set if it's the same?
-        map(lambda f: setAlbumTag(f, title))
+
+        for track in self.tracks:
+            track.tags.setAlbum(title)
+
         self.updatePath()

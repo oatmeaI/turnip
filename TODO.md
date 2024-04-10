@@ -4,6 +4,7 @@
 
 ## Bugs
 
+- ! NEXT: numberTagFileConflicts -> migrate to Command
 - ! Deal with special characters
 - albumArtist / artist conflicts?
 - recognize pt. 1 / pt. 2 etc

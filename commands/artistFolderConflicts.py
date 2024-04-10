@@ -2,13 +2,16 @@ import os
 from Command import Command
 from Album import Album
 from Artist import Artist
-from internal_types import Issue
+from Issue import Issue
 from utils.path import unsanitize
 from utils.util import loopAlbums
-from utils.fs import loadTracks
-from utils.tagging import getAlbumArtistTag
+from Song import Song
 from utils.constants import rootDir
 from tidal import tidal
+
+
+class ArtistFolderConflictsIssue(Issue):
+    data: str
 
 
 class ArtistFolderConflicts(Command):
@@ -16,28 +19,29 @@ class ArtistFolderConflicts(Command):
     allowEdit = True
 
     def findIssues(self) -> list[Issue]:
-        def cb(artist, album) -> list[Issue]:
+        def cb(artistDir, albumDir) -> list[Issue]:
             found: list[Issue] = []
-            tracks = loadTracks(album)
-            iAlbum = Album(album.path) # TODO bad variable name
-            folderName = iAlbum.getAlbumArtist()
-            for track in tracks:
-                artistTag = getAlbumArtistTag(track.path)
-                issue: Issue = {
-                    'data': artist.path,
-                    'entry': album,
-                    'original': folderName,
-                    'delta': artistTag,
-                }
-                if artistTag != unsanitize(folderName, artistTag) and issue not in found:
+            album = Album(albumDir.path)
+            for track in album.tracks:
+                song = Song(track.path)
+                artistTag = song.tags._getAlbumArtist()
+                folderName = unsanitize(album.getAlbumArtist(), artistTag)
+                issue = ArtistFolderConflictsIssue(
+                    data=artistDir.path,
+                    entry=albumDir,
+                    original=folderName,
+                    delta=artistTag
+                )
+                if artistTag != folderName and issue not in found:
                     found.append(issue)
+
             return found
 
         return loopAlbums(rootDir, cb)
 
     def suggest(self, issue: Issue):
         results = tidal.searchArtist(
-            issue['original'],
+            issue.original,
         )
         suggestions = []
         for result in results:
@@ -50,23 +54,23 @@ class ArtistFolderConflicts(Command):
         return suggestions
 
     def auto(self, issue):
-        original = issue['original']
-        delta = issue['delta']
+        original = issue.original
+        delta = issue.delta
         return (original and not delta) or (delta and not original)
 
     def check(self, issue: Issue) -> bool:
-        if not os.path.exists(issue['entry']):
+        if not os.path.exists(issue.entry):
             return False
         return True
 
-    def callback(self, good, issue: Issue) -> None:
-        if good == issue['original']:
+    def callback(self, good, issue: ArtistFolderConflictsIssue) -> None:
+        if good == issue.original:
             # We're updating tags
-            albumPath = issue['entry']
+            albumPath = issue.entry
             album = Album(albumPath.path)
             album.setAlbumArtist(good)
         else:
             # We're updating filepath; do it at the artist folder level
-            artist = issue['data']
+            artist = issue.data
             artist = Artist(artist)
             artist.setName(good)

@@ -1,101 +1,58 @@
 import os
-from internal_types import Issue, Option
-from utils.util import newFix, loopTracks
-from utils.path import splitFileName, buildFileName, stripRootPath
-from utils.tagging import (
-    getTrackNumberTag,
-    setTrackNumberTag,
-)
-from utils.userio import promptHeader, bold, blue
+from Command import Command
+from Issue import Issue
+from Option import Option
+from Song import Track
+from utils.util import loopTracks
+from utils.constants import rootDir
 from tidal import tidal
 
 
-def findConflictedTrackInPath(rootDir: str) -> list[Issue]:
-    def cb(artist: os.DirEntry, album: os.DirEntry, track: os.DirEntry) -> list[Issue]:
-        found: list[Issue] = []
-        parts = splitFileName(track.path)
-        if not parts:
-            print("Error while parsing", track)
-            return []
-        fileNumber = parts["number"]
-        tagNumber = getTrackNumberTag(track.path)
-
-        if not fileNumber or not tagNumber or int(fileNumber) != int(tagNumber):
-            found.append(
-                {
-                    "data": None,
-                    "entry": track,
-                    "original": str(int(fileNumber)) if fileNumber else None,
-                    "delta": str(int(tagNumber)) if tagNumber else None,
-                }
-            )
-        return found
-
-    return loopTracks(rootDir, cb)
+class NumberConflictIssue(Issue):
+    data: None
+    entry: Track
 
 
-def process(rootDir: str) -> int:
-    conflicts = findConflictedTrackInPath(rootDir)
+class NumberTagFileConflicts(Command):
+    cta = "Conflicted track number between filename and tags for"
 
-    def suggest(issue: Issue) -> list[Option]:
-        entry = issue["entry"]
-        split = splitFileName(entry.path)
+    # TODO - move this out of Command and into Issue?
+    def similar(self, issue: NumberConflictIssue):
+        return False
 
-        if not split:
-            return []
+    def skip(self, issue: NumberConflictIssue):
+        return issue.entry.tags.album + issue.entry.tags.albumArtist
 
-        results = tidal.searchTrack(
-            split["title"], split["album"], split["artist"])
+    def findIssues(self) -> list[NumberConflictIssue]:
+        def cb(_, __, trackPath: os.DirEntry) -> list[NumberConflictIssue]:
+            found: list[NumberConflictIssue] = []
+            track = Track(trackPath.path)
+            fileNumber = track.path.trackNumber
+            tagNumber = track.tags.trackNumber
+
+            if not fileNumber or not tagNumber or int(fileNumber) != int(tagNumber):
+                issue = NumberConflictIssue(
+                    data=None,
+                    entry=track,
+                    original=str(fileNumber) if fileNumber else '',
+                    delta=str(tagNumber) if tagNumber else ''
+                )
+                found.append(issue)
+            return found
+
+        return loopTracks(rootDir, cb)
+
+    def suggest(self, issue: NumberConflictIssue) -> list[Option]:
+        track = issue.entry
+        results = tidal.searchTrack(track.title, track.album, track.artist)
         suggestions: list[Option] = []
         for result in results:
-            suggestions.append(
-                {
-                    "key": "NONE",
-                    "display": blue(
-                        result.name
-                        + " by "
-                        + result.artist.name
-                        + " on "
-                        + result.album.name
-                        + ": "
-                        + str(result.track_num)
-                    ),
-                    "value": result.track_num,
-                }
-            )
+            display = result.name + " by " + result.artist.name + " on " + result.album.name + ": " + str(result.track_num)
+            option = Option(key="NONE", display=display, value=result.track_num)
+            suggestions.append(option)
         return suggestions
 
-    def cb(good: str, issue: Issue) -> None:
-        track = issue["entry"]
-        if not os.path.exists(track):
-            print("File not found")
-            return
-        parts = splitFileName(track.path)
-        if not parts:
-            print("Error while parsing", track)
-            return
-        fileNumber = int(parts["number"]) if parts["number"] else None
-        print("filenumber", fileNumber)
-        if int(good) == fileNumber:
-            print("setting tag", good)
-            setTrackNumberTag(track.path, int(good))
-        else:
-            parts["number"] = good
-            newName = buildFileName(parts)
-            os.rename(track, newName)
-
-    def prompt(issue: Issue, index: int, count: int):
-        return (
-            promptHeader("numberTagFileConflicts", index, count)
-            + "\n"
-            + "Conflict between track number and file name for "
-            + bold(stripRootPath(issue["entry"].path))
-        )
-
-    return newFix(
-        issues=conflicts,
-        callback=cb,
-        prompt=prompt,
-        allowEdit=True,
-        suggest=suggest,
-    )
+    def callback(self, _good: str, issue: NumberConflictIssue) -> None:
+        track = issue.entry
+        good = int(_good)
+        track.setTrackNumber(good)

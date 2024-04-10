@@ -1,12 +1,12 @@
-from internal_types import TrackNameParts
 import shutil
 from pathlib import Path
 from utils.fs import ensureDirExists
-from utils.tagging import getTitleTag, getAlbumTag, getAlbumArtistTag
 from typing import Optional
 from utils.constants import rootDir
 import re
 import os
+
+from utils.loadTags import loadTags
 
 
 def stripRootPath(string: str):
@@ -77,7 +77,7 @@ def unsanitize(pathValue: str, tagValue: str):
     return tagValue if sanitizedTagValue == pathValue else pathValue
 
 
-def splitFileName(fullPath: str) -> Optional[TrackNameParts]:
+def splitFileName(fullPath: str):
     # Setup
     lastSlashIndex = fullPath.rindex('/')
     fileName = fullPath[lastSlashIndex + 1:]
@@ -111,7 +111,15 @@ def splitFileName(fullPath: str) -> Optional[TrackNameParts]:
         # Get info from filename
         matches = re.match(r'(?:(\d)-)?(\d*)[ -]{0,3}(.*)\.(.*)', fileName)
         if not matches:
-            return None
+            return {
+                'artist': '',
+                'album': '',
+                'year': '',
+                'disc': '',
+                'number': '',
+                'title': '',
+                'extension': '',
+            }
         pathTitle = matches.group(3)
         number = matches.group(2)
         disc = matches.group(1)
@@ -122,9 +130,10 @@ def splitFileName(fullPath: str) -> Optional[TrackNameParts]:
     albumTag = ''
     artistTag = ''
     if os.path.exists(fullPath) and pathType > 2:
-        titleTag = getTitleTag(fullPath) or ''
-        albumTag = getAlbumTag(fullPath) or ''
-        artistTag = getAlbumArtistTag(fullPath) or ''
+        tags = loadTags(fullPath)
+        titleTag = tags.getTitle() or ''
+        albumTag = tags.getAlbum() or ''
+        artistTag = tags._getAlbumArtist() or ''
     album = unsanitize(pathAlbum, albumTag)
     artist = unsanitize(pathArtist, artistTag)
     title = unsanitize(pathTitle, titleTag) or ''
@@ -140,7 +149,7 @@ def splitFileName(fullPath: str) -> Optional[TrackNameParts]:
     }
 
 
-def buildFileName(parts: TrackNameParts) -> str:
+def buildFileName(parts) -> str:
     number = str(parts['number']) if parts['number'] else '00'
 
     if parts['number'] and int(parts['number']) < 10:

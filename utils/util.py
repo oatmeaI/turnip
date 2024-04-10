@@ -222,13 +222,13 @@ def buildOptions(
         options.append(suggestion)
         i += 1
 
+    options.append({'key': 's', 'value': 'skip', 'display': 'skip'})
     options.append(
         {'key': 'K', 'value': 'skipsimilar', 'display': 'skip all similar'}
     )
     options.append(
         {'key': 'I', 'value': 'ignoresimilar', 'display': 'ignore all similar'}
     )
-    options.append({'key': 's', 'value': 'skip', 'display': 'skip'})
     options.append({'key': 'S', 'value': 'skip all', 'display': 'skip all'})
     options.append({'key': 'i', 'value': 'ignore', 'display': 'ignore'})
 
