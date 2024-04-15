@@ -4,8 +4,8 @@
 
 ## Bugs
 
-- ! NEXT: numberTagFileConflicts -> migrate to Command
-- ! Deal with special characters
+- delete option?
+- concept of trackwise/albumwise/artistwise commands?
 - albumArtist / artist conflicts?
 - recognize pt. 1 / pt. 2 etc
 - fix dupe detection wrt mahavishnu orchestra
