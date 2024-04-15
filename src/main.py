@@ -4,7 +4,7 @@ from commands.albumArtistTagConflicts import AlbumArtistTagConflicts
 from commands.albumTagConflicts import AlbumTagConflicts
 from commands.albumTagFolderConflicts import AlbumTagFolderConflicts
 from commands.albumArtistFolderConflicts import AlbumArtistFolderConflicts
-from commands.yearTagFolderConflicts import YearTagFolderConflicts
+from commands.fixYear import FixYear
 from utils.TagCache import TagCache
 # from commands import titleTagFileConflicts.TitleTagFileConflicts
 # from commands import folderStructure.FolderStructure
@@ -71,7 +71,7 @@ commands = {
     'albumTagConflicts': AlbumTagConflicts,
     'albumTagFolderConflicts': AlbumTagFolderConflicts,
     'albumArtistFolderConflicts': AlbumArtistFolderConflicts,
-    'yearTagFolderConflicts': YearTagFolderConflicts
+    'year': FixYear
     # 'trackDuplicates': trackDuplicates.TrackDuplicates().process,
     # 'clean': clean,
     # 'brokenFiles': emptyFolders.fixBrokenFiles,

@@ -22,7 +22,7 @@ class YearIssue(Issue):
         self.folderYear = folderYear
 
 
-class YearConflicts(Command):
+class FixYear(Command):
     foundAlbums: list[str]
     allowEdit = True
 
@@ -49,9 +49,8 @@ class YearConflicts(Command):
                 tagDiff = (yearTag and foundYearTag and foundYearTag != yearTag)
                 folderDiff = yearTag != folderYear
                 issueLogged = album.path.album in self.foundAlbums
-                noYear = not yearTag and not folderYear and not foundYearTag
 
-                if (tagDiff or folderDiff or noYear) and not issueLogged:
+                if (tagDiff or folderDiff) and not issueLogged:
                     found.append(issue)
                     self.foundAlbums.append(album.path.album)
             return found
