@@ -4,6 +4,8 @@
 
 ## Bugs
 
+- unsanitize not working on track title?
+- replace fancy ' with normal '
 - delete option?
 - concept of trackwise/albumwise/artistwise commands? - hacked this on yearConflicts
 - recognize pt. 1 / pt. 2 etc

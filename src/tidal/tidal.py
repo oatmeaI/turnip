@@ -67,7 +67,7 @@ def searchArtist(artist):
 
 def searchTrack(track, album, artist):
     checkLogin()
-    query = urllib.parse.quote(" ".join([track, artist]))
+    query = " ".join([track, artist])
     print("Searching Tidal with query: " + query)
     results = session.search(query, [tidalapi.media.Track])
     return filter(lambda r: r.album.name == album, results["tracks"])

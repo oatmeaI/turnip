@@ -5,29 +5,8 @@ from commands.albumTagConflicts import AlbumTagConflicts
 from commands.albumTagFolderConflicts import AlbumTagFolderConflicts
 from commands.albumArtistFolderConflicts import AlbumArtistFolderConflicts
 from commands.fixYear import FixYear
+from commands.FixTitles import FixTitles
 from utils.TagCache import TagCache
-# from commands import titleTagFileConflicts.TitleTagFileConflicts
-# from commands import folderStructure.FolderStructure
-# from commands import numberTagFileConflicts.NumberTagFileConflicts
-# from commands import folderStructure
-# from commands import emptyFolders
-# from commands import trackDuplicates
-# from commands import albumDuplicates
-# from commands import artistDuplicates
-# from commands import albumTagConflicts
-# from commands import albumTagFolderConflicts
-# from commands import yearTagFolderConflicts
-# from commands import countTagConflicts
-# from commands import missingTrackCounts
-# from commands import conflictedTrackNumbers
-# from commands import missingTrackNumbers
-# from commands import missingTracks
-# from commands import featInTitle
-# from commands import featInAlbumArtist
-# from commands import featInAlbum
-# from commands import listInAlbumArtist
-# from commands import replace
-from utils.constants import rootDir
 
 
 # def clean():
@@ -71,7 +50,8 @@ commands = {
     'albumTagConflicts': AlbumTagConflicts,
     'albumTagFolderConflicts': AlbumTagFolderConflicts,
     'albumArtistFolderConflicts': AlbumArtistFolderConflicts,
-    'year': FixYear
+    'year': FixYear,
+    'title': FixTitles,
     # 'trackDuplicates': trackDuplicates.TrackDuplicates().process,
     # 'clean': clean,
     # 'brokenFiles': emptyFolders.fixBrokenFiles,
@@ -81,7 +61,6 @@ commands = {
     # 'artistDuplicates': artistDuplicates.ArtistDuplicates().process,
     # 'featInTitle': featInTitle.process,
     # 'featInAlbum': featInAlbum.process,
-    # 'titleTagFileConflicts': TitleTagFileConflicts().process,
     # 'numberTagFileConflicts': NumberTagFileConflicts().process,
     # 'countTagConflicts': countTagConflicts.process,
     # 'missingTrackCounts': missingTrackCounts.process,
