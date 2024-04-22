@@ -104,14 +104,15 @@ class Columns:
         print(output)
 
 
-def rmDir(dir: os.DirEntry) -> None:
+# TODO - this doesn't work right; moves stuff into trash/Volumes/etc
+def rmDir(dir: str) -> None:
     try:
-        destination = os.path.expanduser('~/turnip_data/trash/' + dir.name)
+        destination = os.path.expanduser('~/turnip_data/trash/' + dir)
         while os.path.exists(destination):
             destination = destination + '1'
         shutil.move(dir, destination)
     except Exception as e:
-        print("Couldn't remove " + dir.name + ': ', e)
+        print("Couldn't remove " + dir + ': ', e)
 
 
 def rmFile(file: str) -> None:

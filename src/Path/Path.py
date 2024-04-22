@@ -15,6 +15,9 @@ class Path:
         self.pathObject = pathlib.Path(self.strippedPath)
         self.parentPathParts = self.pathObject.as_posix().split('/')
 
+    def __str__(self) -> str:
+        return self.realPath
+
     def normalizeString(self, string):
         return unicodedata.normalize('NFC', unsanitize(string))
 

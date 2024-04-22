@@ -1,12 +1,13 @@
 from typing import Any, Optional
 from utils.TagCache import TagCache, TagNames
+from utils.constants import args
 
 
 def useCache(tagName):
     def useCacheWrapper(func):
         def wrapped(self):
             value = TagCache.getValue(self.trackPath, tagName)
-            if value is False:
+            if (args.no_cache and not self._forceCache) or value is False:
                 value = func(self)
                 TagCache.setValue(self.trackPath, tagName, value)
             return value
@@ -27,10 +28,12 @@ def updateCache(tagName):
 class BaseTags:
     trackPath: str
     _metadata: Any = {}
+    _forceCache: bool
 
-    def __init__(self, trackPath: str):
+    def __init__(self, trackPath: str, forceCache=False):
         self.trackPath = trackPath
         self.parsed = False
+        self._forceCache = forceCache
 
     @property
     def metadata(self):
@@ -51,6 +54,14 @@ class BaseTags:
 
     def load(self):
         raise Exception("Not implemented")
+
+    @property
+    def bitrate(self) -> str:
+        return self.metadata.info.bitrate
+
+    @property
+    def length(self) -> str:
+        return self.metadata.info.length
 
     @property
     @useCache(TagNames.ARTIST)

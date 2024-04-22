@@ -21,9 +21,11 @@ def load(fullPath):
 
 class Entry:
     path: Path
+    _forceCache: bool
 
-    def __init__(self, path: str) -> None:
+    def __init__(self, path: str, forceCache=False) -> None:
         self.path = load(path)
+        self._forceCache = forceCache
 
     def printPropUpdate(self, prop: str, newValue: str):
         print(f"{stripRootPath(self.path.realPath)} | {prop} -> {newValue}")

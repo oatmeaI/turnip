@@ -1,9 +1,35 @@
 import os
+from typing import Union
+from Command.Command import Command
+from Command.Issue import Issue
+from Entry.Artist import Artist
 from utils.util import loopArtists, loopTracks
 from utils.fs import loadTracks, loadFolders, rmDir, rmFile
 from utils.path import stripRootPath
 from utils.constants import rootDir
 from utils.tagging import getAlbumArtistTag
+
+
+class RemoveEmptyFolders(Command):
+    def findIssues(self) -> list[Issue]:
+        def cb(artist: Artist) -> Union[Issue, list[Issue]]:
+            if len(artist.albums) < 1:
+                return Issue(artist=artist, original=artist.path.realPath)
+
+            found: list[Issue] = []
+            for album in artist.albums:
+                if len(album.tracks) < 1:
+                    found.append(Issue(artist=artist, album=album, original=album.path.realPath))
+            return found
+
+        return loopArtists(rootDir, cb)
+
+    def callback(self, good, issue):
+        print("Trashing empty folder -> " + stripRootPath(issue.original))
+        obj = issue.album or issue.artist
+        rmDir(obj.path.realPath)
+
+
 
 def fixBrokenFiles() -> int:
     count  = 0

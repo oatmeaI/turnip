@@ -10,15 +10,15 @@ class Album(Entry):
     _tracks: list[Track]
     path: AlbumPath
 
-    def __init__(self, path):
-        super(Album, self).__init__(path)
+    def __init__(self, path, forceCache=False):
+        super(Album, self).__init__(path, forceCache)
         self._tracks = []
 
     @property
     def tracks(self):
         if len(self._tracks) < 1:
             for track in loadTracks(self.path.realPath):
-                self._tracks.append(Track(track.path))
+                self._tracks.append(Track(track.path, forceCache=self._forceCache))
         return self._tracks
 
     def getAlbumTitle(self) -> str:

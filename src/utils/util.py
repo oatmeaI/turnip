@@ -9,22 +9,29 @@ from utils.fs import loadFolders
 from utils.userio import chooseFromList, red, green, confirm
 from utils.path import stripRootPath, splitFileName
 from utils.tagging import getTrackTime
-from utils.constants import rootDir
+from utils.constants import rootDir, args
 import json
-from typing import Callable, Optional
+from typing import Callable, Optional, Union
 import copy
 import os
 
 
-def loopArtists(rootDir: str, cb: Callable[[Artist], list]) -> list:
+def loopArtists(rootDir: str, cb: Callable[[Artist], Optional[Union[list[Issue], Issue]]]) -> list[Issue]:
     i = 0
     artists = loadFolders(rootDir)
-    results = []
+    results: list[Issue] = []
     for artist in artists:
         # if artist.name != "All Time Low":
         #     continue
         i += 1
-        results += cb(Artist(artist.path))
+        result = cb(Artist(artist.path, forceCache=True))
+        if not result:
+            continue
+        if isinstance(result, list):
+            results += result
+        else:
+            results.append(result)
+
         if i > 1:
             sys.stdout.write('\033[F')
             sys.stdout.write('\033[K')
@@ -48,13 +55,35 @@ def loopAlbums(
 
 
 def loopTracks(
-    rootDir: str, cb: Callable[[Artist, Album, Track], list]
+    rootDir: str, cb: Callable[[Artist, Album, Track], Optional[Union[list[Issue],Issue]]]
 ) -> list:
     def loop(artist, album):
         results = []
         tracks = album.tracks
+
         for track in tracks:
-            results += cb(artist, album, track)
+            if args.filter:
+                # TODO - dumb to do this here
+                filter = args.filter.lower()
+                stack = [track.album.lower(), track.title.lower(), track.artist.lower()]
+                # TODO - definitely a better way to do this
+                found = False
+                for hay in stack:
+                    if filter in hay:
+                        found = True
+                        break
+                if not found:
+                    continue
+
+            if args.debug:
+                print(track.title)
+            result = cb(artist, album, track)
+            if not result:
+                continue
+            if isinstance(result, list):
+                results += result
+            else:
+                results.append(result)
         return results
 
     return loopAlbums(rootDir, loop)

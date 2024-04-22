@@ -1,6 +1,7 @@
 import os
 from Command.Option import Option
 
+
 def formatCommandName(file: str) -> str:
     commandName = os.path.basename(file).replace(".py", "")
     formatted = purple(f"[{commandName}]")

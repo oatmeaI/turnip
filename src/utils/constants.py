@@ -1,4 +1,4 @@
-import sys
+import argparse
 
 # This is a hellish regex that tries to capture ANY kind of string that defines a "featured" artist(s), currently:
 # Free (ft. Drew Love)
@@ -9,10 +9,21 @@ import sys
 # 1: Text before the featured string
 # 2: Featured string
 # 3: Any text following the featured string
-featPattern = r"(.*)\s[\(\]]?(?:f(?:ea)?t\.|\(with)\s([^\]\)]*)[\]\)]?(.*)"
+featPattern = r"(.*)\s[\(\[]?(?:f(?:ea)?t\.|[\(\[]with)\s([^\]\)]*)[\]\)]?(.*)"
 
 albumPattern = r'(.*)\s\(([12]\d\d\d)\)'
 
 trackPattern = r'(?:(\d)-)?(\d*)[ -]{0,3}(.*)\.(.*)'
 
-rootDir = sys.argv[2]
+parser = argparse.ArgumentParser(description='')
+parser.add_argument('rootDir')
+parser.add_argument('command')
+parser.add_argument('-f', '--filter')
+parser.add_argument('--debug', action='store_true')
+parser.add_argument('--tag')
+parser.add_argument('--value')
+parser.add_argument('--no-cache', action="store_true")
+
+args = parser.parse_args()
+print(args)
+rootDir = args.rootDir

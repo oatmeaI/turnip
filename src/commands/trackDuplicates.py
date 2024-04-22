@@ -1,28 +1,52 @@
 import os
-from typing import Any
 from Command.Command import Command
 from Command.Issue import Issue
+from Entry.Album import Album
+from Entry.Artist import Artist
+from Entry.Track import Track
+from utils.compare import compare
 from utils.constants import rootDir
-from utils.util import compareDupes, loopTracks, findBad
-from utils.path import splitFileName, stripRootPath
+from utils.util import loopTracks, findBad
+from utils.path import stripRootPath
 from utils.fs import rmFile
+
+
+class TrackDuplicateIssue(Issue):
+    artist: Artist
+    album: Album
+    track: Track
+
+    def key(self):
+        return self.artist.path.albumArtist + self.album.path.album + self.track.path.title
 
 
 class TrackDuplicates(Command):
     cta = 'Possible duplicate tracks found. Select which to keep:'
+    seen: list[Track]
 
     def findIssues(self) -> list[Issue]:
-        keys: list[Any] = []
-        currentArtist = ''
+        self.seen = []
 
-        def cb(artist, album, track) -> list[Issue]:
-            nonlocal keys
-            nonlocal currentArtist
-            if currentArtist != artist:
-                keys = []
-                currentArtist = artist
+        def cb(artist: Artist, album: Album, track: Track) -> list[TrackDuplicateIssue]:
+            found = []
 
-            return compareDupes(track, keys, track.name)
+            for otherTrack in self.seen:
+                albumMatch = track.path.album == otherTrack.path.album
+                artistMatch = track.path.albumArtist == otherTrack.path.albumArtist
+
+                if albumMatch and artistMatch:
+                    trackMatch = compare(track.path.title, otherTrack.path.title)
+                    if trackMatch:
+                        found.append(TrackDuplicateIssue(
+                            artist=artist,
+                            album=album,
+                            track=track,
+                            original=otherTrack.path.realPath,
+                            delta=track.path.realPath
+                            ))
+
+            self.seen.append(track)
+            return found
 
         return loopTracks(rootDir, cb)
 
@@ -33,6 +57,7 @@ class TrackDuplicates(Command):
             return 0
 
     def heuristic(self, options):
+        # TODO check bit rate here too
         largest = 0
         default = None
         for option in options:
@@ -48,21 +73,10 @@ class TrackDuplicates(Command):
         fileSize = self.getFileSize(optionValue)
         return stripRootPath(optionValue) + ' (' + str(fileSize) + 'mb)'
 
-    def similar(self, issue: Issue) -> str:
-        # TODO - this doesn't work, so breaking it
-        return False
-        originalParts = splitFileName(issue['original'] or '')
-        deltaParts = splitFileName(issue['delta'] or '')
-
-        if not originalParts or not deltaParts:
-            return issue['original'] or ''
-
-        originalAlbum = originalParts['album']
-        deltaAlbum = deltaParts['album']
-        return f'{originalAlbum} > {deltaAlbum}'
-
     def callback(self, good: str, issue: Issue) -> None:
-        bad = findBad(issue, good)
-        if not bad or not os.path.exists(good) or not os.path.exists(bad):
+        if not os.path.exists(issue.original) or not os.path.exists(issue.delta):
             return
-        rmFile(bad)
+        if good == issue.original:
+            rmFile(issue.delta)
+        else:
+            rmFile(issue.original)

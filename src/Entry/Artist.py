@@ -7,18 +7,20 @@ from utils.fs import loadFolders
 
 class Artist(Entry):
     _albums: list[Album]
+    _forceCache: bool
     path: ArtistPath
 
-    def __init__(self, path):
+    def __init__(self, path, forceCache=False):
         super(Artist, self).__init__(path)
         self._albums = []
+        self._forceCache = forceCache
 
     @property
     def albums(self):
         if len(self._albums) < 1:
             self._albums = []
             for folder in loadFolders(self.path.realPath):
-                self._albums.append(Album(folder.path))
+                self._albums.append(Album(folder.path, forceCache=self._forceCache))
         return self._albums
 
     def setAlbumArtist(self, albumArtist: str) -> None:

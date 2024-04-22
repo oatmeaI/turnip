@@ -1,3 +1,4 @@
+
 import re
 from typing import Optional
 from Command.Command import Command
@@ -11,24 +12,24 @@ from utils.constants import featPattern, rootDir
 from utils.util import loopTracks, getInput
 
 
-class FeatInTitleIssue(TrackIssue):
+class FeatInArtistIssue(TrackIssue):
     data: str
 
 
-class FeatInTitle(Command):
-    def findIssues(self) -> list[FeatInTitleIssue]:
-        def cb(artist: Artist, album: Album, track: Track) -> Optional[FeatInTitleIssue]:
+class FeatInArtist(Command):
+    def findIssues(self) -> list[FeatInArtistIssue]:
+        def cb(artist: Artist, album: Album, track: Track) -> Optional[FeatInArtistIssue]:
 
-            matches = re.match(featPattern, track.title)
+            matches = re.match(featPattern, track.artist)
             if not matches:
                 return None
 
-            return FeatInTitleIssue(
+            return FeatInArtistIssue(
                     artist=artist,
                     album=album,
                     track=track,
-                    original=track.title,
-                    delta=re.sub(featPattern, r'\1\3', track.title),
+                    original=track.artist,
+                    delta=re.sub(featPattern, r'\1\3', track.artist),
                     data=str(matches.group(2)),
                 )
 
@@ -40,12 +41,13 @@ class FeatInTitle(Command):
                 return option
         return options[0]
 
-    def callback(self, good, issue: FeatInTitleIssue) -> None:
+    def callback(self, good, issue: FeatInArtistIssue) -> None:
         track = issue.track
+
+        track.setArtist(good)
         artistTag = track.artist
 
-        track.setTitle(good)
-
+        # TODO - this logic is duplicated a bunch
         default = not issue.data or issue.data not in artistTag
         shouldUpdateArtist = confirm(
             'Add featured artists to artist tag: ' + bold(artistTag) + '?',

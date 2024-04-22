@@ -6,14 +6,14 @@ from utils.MP4Tags import MP4Tags
 from utils.Tags import BaseTags
 
 
-def loadTags(path: str) -> BaseTags:
+def loadTags(path: str, forceCache=False) -> BaseTags:
     extension = pathlib.Path(path).suffix
     match extension:
         case '.mp3':
-            return MP3Tags(path)
+            return MP3Tags(path, forceCache)
         case '.m4a':
-            return MP4Tags(path)
+            return MP4Tags(path, forceCache)
         case '.flac':
-            return FLACTags(path)
+            return FLACTags(path, forceCache)
         case _:
             raise Exception('Not recognized')

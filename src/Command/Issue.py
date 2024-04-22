@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Optional
 from Entry.Album import Album
 from Entry.Artist import Artist
 from Entry.Entry import Entry
@@ -10,12 +10,10 @@ class Issue:
     album: Optional[Album]
     artist: Optional[Artist]
 
-    data: Optional[Any]
-
     original: str
-    delta: str
+    delta: Optional[str]
 
-    def __init__(self, original, delta, track=None, album=None, artist=None, data=None):
+    def __init__(self, original, delta=None, track=None, album=None, artist=None, data=None):
         self.original = original
         self.delta = delta
         self.data = data
@@ -32,7 +30,8 @@ class Issue:
         track = self.track.tags.title if self.track else ''
         album = self.album.path.album if self.album else ''
         artist = self.artist.path.albumArtist if self.artist else ''
-        return self.original + self.delta + track + album + artist
+        delta = self.delta or ''
+        return self.original + delta + track + album + artist
 
     def __eq__(self, other):
         try:
@@ -63,3 +62,15 @@ class Issue:
                 self.original = value
             case 'delta':
                 self.delta = value
+
+
+class ArtistIssue(Issue):
+    artist: Artist
+
+
+class AlbumIssue(ArtistIssue):
+    album: Album
+
+
+class TrackIssue(AlbumIssue):
+    track: Track

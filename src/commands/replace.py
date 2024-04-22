@@ -1,6 +1,11 @@
 from typing_extensions import TypedDict
-from typing import Union, Callable, Dict
-from Command import TrackCommand
+from typing import Optional, Pattern, Union, Callable, Dict
+from Command.Command import TrackCommand
+from Command.Issue import TrackIssue
+from Command.Option import Option
+from Entry.Album import Album
+from Entry.Artist import Artist
+from Entry.Track import Track
 from utils.tagging import (
     getTitleTag,
     getArtistTag,
@@ -9,254 +14,205 @@ from utils.tagging import (
 )
 import os
 import re
-from Song import Song
-from internal_types import Issue, Option
 
 
-Replacement = TypedDict(
-    'Replacement',
-    {
-        'find': str,
-        'replace': str,
-        'search': Union[str, list[str]],
-        'auto': bool,
-        'regex': bool,
-    },
-)
+class Replacement():
+    find: str
+    replace: str
+    search: Union[str, list[str]]
+    auto: bool
+    foundTag: str
+
+    def __init__(self, find, replace, search, auto):
+        self.find = find
+        self.replace = replace
+        self.search = search
+        self.auto = auto
+
+    def isFound(self, track: Track) -> Optional[list[str]]:
+        # TODO - I only use 'all', but should support others lol
+        # TODO this feels dumb
+        # TODO this seems like a bad return format
+        if self.find in track.artist:
+            return ['artist', track.artist]
+        if self.find in track.album:
+            return ['album', track.album]
+        if self.find in track.albumArtist:
+            return ['albumArtist', track.albumArtist]
+        if self.find in track.title:
+            return ['title', track.title]
+
+        return None
+
+    def doReplace(self, value: str) -> str:
+        return value.replace(self.find, self.replace)
+
+
+class RegexReplacement(Replacement):
+    findPattern: Pattern
+
+    def __init__(self, find, replace, search, auto):
+        super(RegexReplacement, self).__init__(find, replace, search, auto)
+        self.findPattern = re.compile(find)
+
+    def isFound(self, track: Track) -> Optional[list[str]]:
+        if re.search(self.findPattern, track.artist):
+            return ['artist', track.artist]
+        if re.search(self.findPattern, track.album):
+            return ['album', track.album]
+        if re.search(self.findPattern, track.albumArtist):
+            return ['albumArtist', track.albumArtist]
+        if re.search(self.findPattern, track.title):
+            return ['title', track.title]
+
+        return None
+
+    def doReplace(self, value: str) -> str:
+        return re.sub(self.findPattern, self.replace, value)
+
 
 replacements: list[Replacement] = [
-    {
-        'find': 'remix',
-        'replace': 'Remix',
-        'search': 'all',
-        'auto': False,
-        'regex': False,
-    },
-    {
-        'find': ' (Album Version) [Album Version]/Album Version',
-        'replace': '',
-        'search': 'all',
-        'auto': True,
-        'regex': False,
-    },
-    {
-        'find': r'( [\(\[]Album Version[\)\]])',
-        'replace': '',
-        'search': 'all',
-        'auto': True,
-        'regex': True,
-    },
-    {
-        'find': '’',
-        'replace': "'",
-        'search': 'all',
-        'auto': True,
-        'regex': False,
-    },
-    {
-        'find': '“',
-        'replace': '"',
-        'search': 'all',
-        'auto': True,
-        'regex': False,
-    },
-    {
-        'find': '”',
-        'replace': '"',
-        'search': 'all',
-        'auto': True,
-        'regex': False,
-    },
-    {
-        'find': ' [Song   Album Version]/Song   Album Version',
-        'replace': '',
-        'search': 'all',
-        'auto': True,
-        'regex': False,
-    },
-    {
-        'find': '/Album Version',
-        'replace': '',
-        'search': 'all',
-        'auto': True,
-        'regex': False,
-    },
-    {
-        'find': ' (Explicit)',
-        'replace': '',
-        'search': 'all',
-        'auto': True,
-        'regex': False,
-    },
-    {
-        'find': ' [Explicit]',
-        'replace': '',
-        'search': 'all',
-        'auto': True,
-        'regex': False,
-    },
-    {
-        'find': r'( \([^\)]*[Rr]emaster[^\)]*\))',
-        'replace': '',
-        'search': 'all',
-        'auto': False,
-        'regex': True,
-    },
-    {
-        'find': r'(.*) - (.* [rR]emix)',
-        'replace': r'\1 (\2)',
-        'search': 'all',
-        'auto': False,
-        'regex': True,
-    },
-    {
-        'find': r'(.*) \[(.*[rR]emix)\]',
-        'replace': r'\1 (\2)',
-        'search': 'all',
-        'auto': False,
-        'regex': True,
-    },
-    {
-        'find': r' (\(.*\) )?\[(.*)\][/_].*',
-        'replace': [r' (\2)', ''],
-        'search': 'all',
-        'auto': False,
-        'regex': True,
-    },
+    Replacement(
+        find='remix',
+        replace='Remix',
+        search='all',
+        auto=False,
+    ),
+    Replacement(
+        find=' (Album Version) [Album Version]/Album Version',
+        replace='',
+        search='all',
+        auto=True,
+    ),
+    Replacement(
+        find=r'( [\(\[]Album Version[\)\]])',
+        replace='',
+        search='all',
+        auto=True,
+    ),
+    Replacement(
+        find='’',
+        replace="'",
+        search='all',
+        auto=True,
+    ),
+    Replacement(
+        find='“',
+        replace='"',
+        search='all',
+        auto=True,
+    ),
+    Replacement(
+        find='”',
+        replace='"',
+        search='all',
+        auto=True,
+    ),
+    Replacement(
+        find=' [Song   Album Version]/Song   Album Version',
+        replace='',
+        search='all',
+        auto=True,
+    ),
+    Replacement(
+        find='/Album Version',
+        replace='',
+        search='all',
+        auto=True,
+    ),
+    Replacement(
+        find=' (Explicit)',
+        replace='',
+        search='all',
+        auto=True,
+    ),
+    Replacement(
+        find=' [Explicit]',
+        replace='',
+        search='all',
+        auto=True,
+    ),
+    RegexReplacement(
+        find=r'( \([^\)]*[Rr]emaster[^\)]*\))',
+        replace='',
+        search='all',
+        auto=False,
+    ),
+    RegexReplacement(
+        find=r'(.*) - (.* [rR]emix)',
+        replace=r'\1 (\2)',
+        search='all',
+        auto=False,
+    ),
+    RegexReplacement(
+        find=r'(.*) \[(.*[rR]emix)\]',
+        replace=r'\1 (\2)',
+        search='all',
+        auto=False,
+    ),
+    RegexReplacement(
+        find=r' (\(.*\) )?\[(.*)\][/_].*',
+        replace=[r' (\2)', ''],
+        search='all',
+        auto=False,
+    ),
 ]
-
-TagFunc = TypedDict(
-    'TagFunc',
-    {
-        'get': Callable[[str], str | None],
-        'set': Callable[[Song, str], None],
-    },
-)
-
-tagFuncs: Dict[str, TagFunc] = {
-    'title': {
-        'get': getTitleTag,
-        'set': lambda t, newTitle: t.setTitle(newTitle),
-    },
-    'artist': {
-        'get': getArtistTag,
-        'set': lambda t, newArtist: t.setArtist(newArtist),
-    },
-    'albumArtist': {
-        'get': getAlbumArtistTag,
-        'set': lambda t, newArtist: t.setAlbumArtist(newArtist),
-    },
-    'album': {
-        'get': getAlbumTag,
-        'set': lambda t, newAlbum: t.setAlbum(newAlbum),
-    },
-}
 
 
 class Replace(TrackCommand):
     cta = 'Replace found'
     allowEdit = True
-    suggestions = {}
 
-    def detectIssue(self, artist, album, track) -> list[Issue]:
-        found: list[Issue] = []
+    def detectIssue(self, artist: Artist, album: Album, track: Track) -> list[TrackIssue]:
+        foundIssues = []
 
         for replacement in replacements:
-            searches = (
-                tagFuncs.keys()
-                if replacement['search'] == 'all'
-                else replacement['search']
-            )
+            found = replacement.isFound(track)
+            if not found:
+                continue
 
-            tags = []
-            for search in searches:
-                tags.append(
-                    {
-                        'tag': search,
-                        'value': tagFuncs[search]['get'](track.path),
-                    }
-                )
+            # TODO bad names
+            [tagName, tagValue] = found
 
-            for tag in tags:
-                if not tag['value']:
-                    continue
+            replaced = replacement.doReplace(tagValue)
 
-                find = (
-                    replacement['find']
-                    if not replacement['regex']
-                    else re.compile(replacement['find'])
-                )
-                matched = (
-                    replacement['find'] in tag['value']
-                    if not replacement['regex']
-                    else re.search(find, tag['value'])
-                )
+            issue = TrackIssue(
+                    artist=artist,
+                    album=album,
+                    track=track,
+                    delta=replaced,
+                    original=tagValue,
+                    data=tagName
+                    )
 
-                suggest = None
-                if tag['value'] and matched:
-                    if type(replacement['replace']) is list:
-                        replaced = (
-                            tag['value'].replace(
-                                find, replacement['replace'][0]
-                            )
-                            if not replacement['regex']
-                            else re.sub(
-                                find, replacement['replace'][0], tag['value']
-                            )
-                        )
-                        suggest = (
-                            tag['value'].replace(
-                                find, replacement['replace'][1]
-                            )
-                            if not replacement['regex']
-                            else re.sub(
-                                find, replacement['replace'][1], tag['value']
-                            )
-                        )
-                        self.suggestions[
-                            track.path + tag['value'] + replaced + tag['tag']
-                        ] = suggest
-                    else:
-                        replaced = (
-                            tag['value'].replace(find, replacement['replace'])
-                            if not replacement['regex']
-                            else re.sub(
-                                find, replacement['replace'], tag['value']
-                            )
-                        )
-                    issue: Issue = {
-                        'entry': track,
-                        'delta': replaced,
-                        'original': tag['value'],
-                        'data': tag['tag'],
-                    }
-                    if 'auto' not in replacement or not replacement['auto']:
-                        issue['original'] = tag['value']
-                    found.append(issue)
-        return found
+            foundIssues.append(issue)
+        return foundIssues
 
-    def suggest(self, issue):
-        key = (
-            issue['entry'].path
-            + issue['original']
-            + issue['delta']
-            + issue['data']
-        )
-        if key in self.suggestions:
-            suggest = self.suggestions[key]
-            return [{'key': suggest, 'value': suggest}]
-        return []
+    # def suggest(self, issue):
+    #     key = (
+    #         issue['entry'].path
+    #         + issue['original']
+    #         + issue['delta']
+    #         + issue['data']
+    #     )
+    #     if key in self.suggestions:
+    #         suggest = self.suggestions[key]
+    #         return [{'key': suggest, 'value': suggest}]
+    #     return []
 
-    def heuristic(self, options: list[Option]) -> Option:
+    def heuristic(self, options: list[Option]):
         return options[1]
 
-    def callback(self, good: str, issue: Issue) -> None:
-        track = issue['entry']
-        if not os.path.exists(track):
-            return
-        tag = issue['data']
-        if not tag:
-            return
-        print('Updating ' + track.path + ' - setting ' + tag + ' to ' + good)
-        song = Song(track.path)
-        tagFuncs[tag]['set'](song, good)
+    def callback(self, good: str, issue: TrackIssue) -> None:
+        track = issue.track
+        tag = issue.data
+
+        match tag:
+            case 'artist':
+                track.setArtist(good)
+            case 'album':
+                track.setAlbum(good)
+            case 'albumArtist':
+                track.setAlbumArtist(good)
+            case 'title':
+                track.setTitle(good)

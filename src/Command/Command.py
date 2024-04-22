@@ -155,9 +155,11 @@ class Command:
         for issue in filteredIssues:
             i += 1
             if issue.key in self._ignoreCache:
+                print("Ignoring...")
                 continue
 
             if not self.check(issue):
+                print("Skipping because check failed...", issue.entry.path.realPath)
                 continue
 
             if not self.shouldProcess(issue):
@@ -168,7 +170,9 @@ class Command:
 
             options = self.buildOptions(issue)
             # skip items with no suggestions except to skip
-            if options[-1].value == 'skip':
+            if len(options) < 8:
+                print("Skipping because no options")
+                print(options)
                 continue
 
             print('')  # New line
@@ -176,6 +180,7 @@ class Command:
             autoResolve = self.auto(issue)
             defaultOption = self.heuristic(options) # TODO - I feel like this happens twice
             if autoResolve and defaultOption:
+                print('Auto...')
                 resp = defaultOption.value
                 self.callback(resp, issue)
                 count += 1
@@ -183,6 +188,7 @@ class Command:
 
             handled = self.handleSimilar(issue)
             if handled:
+                print('Skipping...')
                 continue
 
             resp = chooseFromList(options)

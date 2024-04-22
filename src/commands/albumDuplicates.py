@@ -1,31 +1,46 @@
 from typing import Any
 from Command.Command import Command
 from Command.Issue import Issue
+from Entry.Album import Album
+from Entry.Artist import Artist
+from utils.compare import compare
 from utils.constants import rootDir
 from utils.util import compareDupes, loopAlbums, newFix, findBad
 from utils.userio import promptHeader
 from utils.fs import moveDirFiles
 
 
+class AlbumDuplicateIssue(Issue):
+    artist: Artist
+    album: Album
+
+    def key(self):
+        return self.artist.path.albumArtist + self.album.path.album
+
+
 class AlbumDuplicates(Command):
     cta = "Possible album duplicates found. Select which to keep:"
+    seen: list[Album]
 
-    def findIssues(self) -> list[Issue]:
-        keys: list[Any] = []
-        currentArtist = ""
+    def findIssues(self) -> list[AlbumDuplicateIssue]:
+        self.seen = []
 
-        def cb(artist, album):
-            nonlocal keys
-            nonlocal currentArtist
-            if currentArtist != artist:
-                keys = []
-                currentArtist = artist
+        def cb(artist: Artist, album: Album):
+            found = []
 
-            return compareDupes(
-                album,
-                keys,
-                album.name,
-            )
+            for otherAlbum in self.seen:
+                albumMatch = compare(album.path.album, otherAlbum.path.album)
+                artistMatch = compare(album.path.albumArtist, otherAlbum.path.albumArtist)
+                if albumMatch and artistMatch:
+                    found.append(AlbumDuplicateIssue(
+                        artist=artist,
+                        album=album,
+                        original=otherAlbum.path.realPath,
+                        delta=album.path.realPath
+                        ))
+
+            self.seen.append(album)
+            return found
 
         return loopAlbums(rootDir, cb)
 
