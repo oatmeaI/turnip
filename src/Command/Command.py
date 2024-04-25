@@ -11,6 +11,7 @@ from utils.constants import rootDir
 
 
 class Command:
+    title = ''
     cta = ''
     allowEdit = False
     skipIssueValues = False
@@ -147,6 +148,7 @@ class Command:
     def process(self) -> int:
         print('\n' + formatCommandName(self.__class__.__name__))
 
+        print(self.title)
         issues = self.findIssues()
         filteredIssues = list(filter(self.shouldProcess, issues))
 
@@ -170,9 +172,8 @@ class Command:
 
             options = self.buildOptions(issue)
             # skip items with no suggestions except to skip
-            if len(options) < 8:
+            if len(options) < 9:
                 print("Skipping because no options")
-                print(options)
                 continue
 
             print('')  # New line

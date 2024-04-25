@@ -1,26 +1,15 @@
 from Command.Command import Command
-from Command.Issue import Issue
+from Command.Issue import Issue, TrackIssue
 from Command.Option import Option
 from Entry.Album import Album
 from Entry.Artist import Artist
-from Entry.Track import Track
+from Search.SearchService import SearchService
 from utils.util import loopAlbums
 from utils.constants import rootDir
-from tidal import tidal
-
-
-class AlbumTagConflictsIssue(Issue):
-    artist: Artist
-    album: Album
-    track: Track
-
-    @property
-    def key(self):
-        return 'albumTagConflict' + self.original + self.delta + self.track.path.title
 
 
 class FixAlbum(Command):
-    def findIssues(self) -> list[AlbumTagConflictsIssue]:
+    def findIssues(self) -> list[TrackIssue]:
         def cb(artist: Artist, album: Album) -> list[Issue]:
             found: list[Issue] = []
             foundTag = None
@@ -29,7 +18,7 @@ class FixAlbum(Command):
             for track in album.tracks:
                 albumTag = track.tags.album
                 if albumTag and foundTag and foundTag != albumTag:
-                    found.append(AlbumTagConflictsIssue(
+                    found.append(TrackIssue(
                         album=album,
                         original=foundTag,
                         delta=albumTag,
@@ -38,7 +27,7 @@ class FixAlbum(Command):
                     ))
                     break
                 elif folderTitle != albumTag and albumTag:
-                    found.append(AlbumTagConflictsIssue(
+                    found.append(TrackIssue(
                         album=album,
                         original=folderTitle,
                         delta=albumTag,
@@ -52,15 +41,15 @@ class FixAlbum(Command):
 
         return loopAlbums(rootDir, cb)
 
-    def suggest(self, issue: AlbumTagConflictsIssue) -> list[Option]:
+    def suggest(self, issue: TrackIssue) -> list[Option]:
         album = issue.album
-        results = tidal.searchAlbum(album.path.album, album.path.albumArtist)
+        results = SearchService.searchAlbum(album)
         suggestions: list[Option] = []
         for result in results:
-            suggestions.append(Option(key="NONE", value=result.name, display=None))
+            suggestions.append(Option(key="NONE", value=result.album, display=f"{result.album} by {result.artist} ({result.year})"))
         return suggestions
 
-    def callback(self, good: str, issue: AlbumTagConflictsIssue) -> None:
+    def callback(self, good: str, issue: TrackIssue) -> None:
         album = issue.album
         for track in album.tracks:
             track.setAlbum(good)

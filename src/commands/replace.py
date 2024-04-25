@@ -1,18 +1,10 @@
-from typing_extensions import TypedDict
-from typing import Optional, Pattern, Union, Callable, Dict
+from typing import Optional, Pattern, Union
 from Command.Command import TrackCommand
 from Command.Issue import TrackIssue
 from Command.Option import Option
 from Entry.Album import Album
 from Entry.Artist import Artist
 from Entry.Track import Track
-from utils.tagging import (
-    getTitleTag,
-    getArtistTag,
-    getAlbumArtistTag,
-    getAlbumTag
-)
-import os
 import re
 
 

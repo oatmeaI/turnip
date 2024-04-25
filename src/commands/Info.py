@@ -7,16 +7,11 @@ from Entry.Artist import Artist
 from Entry.Track import Track
 
 
-class InfoIssue(TrackIssue):
-    def key(self):
-        return self.track.path
-
-
 class Info(TrackCommand):
     def detectIssue(self, artist: Artist, album: Album, track: Track):
-        return InfoIssue(artist=artist, album=album, track=track, original='Show Info', delta='')
+        return TrackIssue(artist=artist, album=album, track=track, original='Show Info', delta='')
 
-    def callback(self, good, issue: InfoIssue):
+    def callback(self, good, issue: TrackIssue):
         if good:
             track = issue.track
 

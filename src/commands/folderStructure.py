@@ -1,7 +1,7 @@
-import os
 from Command.Command import Command
 from Command.Issue import Issue
-from utils.fs import loadTracks, loadFolders, moveDirFiles
+from Entry.Artist import Artist
+from utils.fs import loadTracks, loadFolders, moveDirFiles, rmDir
 from utils.util import loopArtists
 from utils.constants import rootDir
 
@@ -9,31 +9,27 @@ from utils.constants import rootDir
 class FolderStructure(Command):
     cta = "Found an issue with the folder structure"
 
-    def similar(self, issue):
-        return False
-
-    def checkStructure(self, artist: os.DirEntry) -> list[Issue]:
+    def checkStructure(self, artist: Artist) -> list[Issue]:
         found: list[Issue] = []
-        tracks = loadTracks(artist.path)
+        tracks = loadTracks(artist.path.realPath)
         if len(tracks) > 0:
-            artistIssue: Issue = {
-                    "entry": artist,
-                    "delta": "Create unnamed album",
-                    "original": "Ignore",
-                    "data": "artist"
-                    }
+            artistIssue = Issue(
+                    artist=artist,
+                    delta="Create unnamed album",
+                    original="Ignore",
+                    data="artist"
+                    )
             found.append(artistIssue)
 
-        albums = loadFolders(artist.path)
-        for album in albums:
-            subDirs = loadFolders(album.path)
+        for album in artist.albums:
+            subDirs = loadFolders(album.path.realPath)
             if len(subDirs) > 0:
-                issue: Issue = {
-                    "entry": album,
-                    "data": "album",
-                    "original": "Ignore",
-                    "delta": "Move to album root"
-                }
+                issue = Issue(
+                    album=album,
+                    data="album",
+                    original="Ignore",
+                    delta="Move to album root"
+                )
                 found.append(issue)
 
         return found
@@ -45,32 +41,32 @@ class FolderStructure(Command):
         if (good == "Ignore"):
             return # TODO - cache this
         if (good == "Move to album root"):
-            subDirs = loadFolders(issue["entry"].path)
+            subDirs = loadFolders(issue.entry.path.realPath)
             for dir in subDirs:
-                moveDirFiles(dir.path, issue["entry"].path)
+                moveDirFiles(dir.path, issue.entry.path.realPath)
+                rmDir(dir.path)
 
 
-
-def verify(rootDir: str) -> None:
-    def cb(artist: os.DirEntry):
-        found = []
-        tracks = loadTracks(artist.path)
-        if len(tracks) > 0:
-            found.append(
-                {"entry": artist.path, "type": "artist", "tracks": len(tracks)}
-            )
-        albums = loadFolders(artist.path)
-        for album in albums:
-            subDirs = loadFolders(album.path)
-            if len(subDirs) > 0:
-                found.append(
-                    {"entry": album.path, "type": "album",
-                        "dirs": len(subDirs)}
-                )
-        return found
-
-    found = loopArtists(rootDir, cb)
-
-    if len(found):
-        print(found)
-        raise "Folder structure problems detected; we can't fix these for you yet."
+# def verify(rootDir: str) -> None:
+#     def cb(artist: os.DirEntry):
+#         found = []
+#         tracks = loadTracks(artist.path)
+#         if len(tracks) > 0:
+#             found.append(
+#                 {"entry": artist.path, "type": "artist", "tracks": len(tracks)}
+#             )
+#         albums = loadFolders(artist.path)
+#         for album in albums:
+#             subDirs = loadFolders(album.path)
+#             if len(subDirs) > 0:
+#                 found.append(
+#                     {"entry": album.path, "type": "album",
+#                         "dirs": len(subDirs)}
+#                 )
+#         return found
+#
+#     found = loopArtists(rootDir, cb)
+#
+#     if len(found):
+#         print(found)
+#         raise "Folder structure problems detected; we can't fix these for you yet."

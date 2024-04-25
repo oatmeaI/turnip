@@ -19,11 +19,23 @@ parser = argparse.ArgumentParser(description='')
 parser.add_argument('rootDir')
 parser.add_argument('command')
 parser.add_argument('-f', '--filter')
+parser.add_argument('--limit')
+parser.add_argument('--artist-filter')
 parser.add_argument('--debug', action='store_true')
 parser.add_argument('--tag')
 parser.add_argument('--value')
 parser.add_argument('--no-cache', action="store_true")
 
 args = parser.parse_args()
-print(args)
 rootDir = args.rootDir
+count = 0
+
+
+class _Globals:
+    count: int
+
+    def __init__(self):
+        self.count = 0
+
+
+Globals = _Globals()

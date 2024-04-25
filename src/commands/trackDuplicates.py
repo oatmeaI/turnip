@@ -1,33 +1,24 @@
 import os
 from Command.Command import Command
-from Command.Issue import Issue
+from Command.Issue import TrackIssue
 from Entry.Album import Album
 from Entry.Artist import Artist
 from Entry.Track import Track
 from utils.compare import compare
 from utils.constants import rootDir
-from utils.util import loopTracks, findBad
+from utils.util import loopTracks
 from utils.path import stripRootPath
 from utils.fs import rmFile
-
-
-class TrackDuplicateIssue(Issue):
-    artist: Artist
-    album: Album
-    track: Track
-
-    def key(self):
-        return self.artist.path.albumArtist + self.album.path.album + self.track.path.title
 
 
 class TrackDuplicates(Command):
     cta = 'Possible duplicate tracks found. Select which to keep:'
     seen: list[Track]
 
-    def findIssues(self) -> list[Issue]:
+    def findIssues(self) -> list[TrackIssue]:
         self.seen = []
 
-        def cb(artist: Artist, album: Album, track: Track) -> list[TrackDuplicateIssue]:
+        def cb(artist: Artist, album: Album, track: Track) -> list[TrackIssue]:
             found = []
 
             for otherTrack in self.seen:
@@ -37,7 +28,7 @@ class TrackDuplicates(Command):
                 if albumMatch and artistMatch:
                     trackMatch = compare(track.path.title, otherTrack.path.title)
                     if trackMatch:
-                        found.append(TrackDuplicateIssue(
+                        found.append(TrackIssue(
                             artist=artist,
                             album=album,
                             track=track,
@@ -73,7 +64,7 @@ class TrackDuplicates(Command):
         fileSize = self.getFileSize(optionValue)
         return stripRootPath(optionValue) + ' (' + str(fileSize) + 'mb)'
 
-    def callback(self, good: str, issue: Issue) -> None:
+    def callback(self, good: str, issue: TrackIssue) -> None:
         if not os.path.exists(issue.original) or not os.path.exists(issue.delta):
             return
         if good == issue.original:

@@ -1,11 +1,10 @@
 from titlecase import titlecase
 from Command.Command import TrackCommand
-from Command.Issue import Issue
+from Command.Issue import TrackIssue
 from Command.Option import Option
 from Entry.Album import Album
 from Entry.Artist import Artist
 from Entry.Track import Track
-from tidal import tidal
 
 
 def titleCallback(word, **kwargs):
@@ -14,20 +13,15 @@ def titleCallback(word, **kwargs):
     return None
 
 
-class TitleIssue(Issue):
-    track: Track
-    pass
-
-
 class FixTitles(TrackCommand):
     cta = 'Conflict between track name and file name for: '
     allowEdit = True
 
-    def detectIssue(self, artist: Artist, album: Album, track: Track) -> list[TitleIssue]:
-        found: list[TitleIssue] = []
+    def detectIssue(self, artist: Artist, album: Album, track: Track) -> list[TrackIssue]:
+        found: list[TrackIssue] = []
 
         if track.path.title != track.tags.title:
-            issue = TitleIssue(
+            issue = TrackIssue(
                     artist=artist,
                     album=album,
                     original=track.tags.title,
@@ -37,37 +31,37 @@ class FixTitles(TrackCommand):
             found.append(issue)
         return found
 
-    def suggest(self, issue: TitleIssue) -> list[Option]:
-        track = issue.track
-        results = tidal.searchTrack(track.title, track.album, track.albumArtist)
-        suggestions: list[Option] = []
-        for result in results:
-            option = Option(
-                    key="NONE",
-                    display=result.name + ' by ' + result.artist.name + ' on ' + result.album.name,
-                    value=result.name
-                    )
-            suggestions.append(option)
-
-        titleCasedOriginal = titlecase(
-            issue.original, callback=titleCallback
-        )
-        titleCasedDelta = titlecase(issue.delta, callback=titleCallback)
-        if titleCasedOriginal != issue.original:
-            suggestions.append(Option(
-                    key='NONE',
-                    display=titleCasedOriginal,
-                    value=titleCasedOriginal,
-                )
-            )
-        if titleCasedDelta != issue.delta:
-            suggestions.append(Option(
-                    key='NONE',
-                    display=titleCasedDelta,
-                    value=titleCasedDelta,
-                )
-            )
-        return suggestions
+    # def suggest(self, issue: TrackIssue) -> list[Option]:
+    #     track = issue.track
+    #     results = tidal.searchTrack(track.title, track.album, track.albumArtist)
+    #     suggestions: list[Option] = []
+    #     for result in results:
+    #         option = Option(
+    #                 key="NONE",
+    #                 display=result.name + ' by ' + result.artist.name + ' on ' + result.album.name,
+    #                 value=result.name
+    #                 )
+    #         suggestions.append(option)
+    #
+    #     titleCasedOriginal = titlecase(
+    #         issue.original, callback=titleCallback
+    #     )
+    #     titleCasedDelta = titlecase(issue.delta, callback=titleCallback)
+    #     if titleCasedOriginal != issue.original:
+    #         suggestions.append(Option(
+    #                 key='NONE',
+    #                 display=titleCasedOriginal,
+    #                 value=titleCasedOriginal,
+    #             )
+    #         )
+    #     if titleCasedDelta != issue.delta:
+    #         suggestions.append(Option(
+    #                 key='NONE',
+    #                 display=titleCasedDelta,
+    #                 value=titleCasedDelta,
+    #             )
+    #         )
+    #     return suggestions
 
     def heuristic(self, options: list[Option]) -> Option:
         scores = []
@@ -92,6 +86,6 @@ class FixTitles(TrackCommand):
 
         return default['option']
 
-    def callback(self, good: str, issue: TitleIssue) -> None:
+    def callback(self, good: str, issue: TrackIssue) -> None:
         track = issue.track
         track.setTitle(good)

@@ -1,8 +1,10 @@
 from Command.Command import Command
 from Command.Issue import Issue
+from Command.Option import Option
 from Entry.Album import Album
 from Entry.Artist import Artist
 from Entry.Track import Track
+from Search.SearchService import SearchService
 from utils.util import loopArtists
 from utils.constants import rootDir
 
@@ -56,6 +58,13 @@ class FixAlbumArtist(Command):
             return found
 
         return loopArtists(rootDir, cb)
+
+    def suggest(self, issue: AlbumArtistTagConflictsIssue) -> list[Option]:
+        results = SearchService.searchArtist(issue.artist)
+        suggestions: list[Option] = []
+        for result in results:
+            suggestions.append(Option(key="NONE", value=result.artist, display=None))
+        return suggestions
 
     def callback(self, good: str, issue: AlbumArtistTagConflictsIssue):
         artist = issue.artist

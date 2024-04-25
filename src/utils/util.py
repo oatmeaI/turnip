@@ -9,7 +9,7 @@ from utils.fs import loadFolders
 from utils.userio import chooseFromList, red, green, confirm
 from utils.path import stripRootPath, splitFileName
 from utils.tagging import getTrackTime
-from utils.constants import rootDir, args
+from utils.constants import rootDir, args, Globals
 import json
 from typing import Callable, Optional, Union
 import copy
@@ -20,11 +20,26 @@ def loopArtists(rootDir: str, cb: Callable[[Artist], Optional[Union[list[Issue],
     i = 0
     artists = loadFolders(rootDir)
     results: list[Issue] = []
-    for artist in artists:
-        # if artist.name != "All Time Low":
-        #     continue
+    for _artist in artists:
+        artist = Artist(_artist.path, forceCache=True)
+        if args.limit and Globals.count >= int(args.limit):
+            break
+        if args.artist_filter:
+            # TODO - dumb to do this here
+            filter = args.artist_filter.lower()
+            stack = [artist.path.albumArtist.lower()]
+            # TODO - definitely a better way to do this
+            found = False
+            for hay in stack:
+                if filter == hay:
+                    found = True
+                    break
+            if not found:
+                continue
+        Globals.count += 1
+
         i += 1
-        result = cb(Artist(artist.path, forceCache=True))
+        result = cb(artist)
         if not result:
             continue
         if isinstance(result, list):
@@ -37,7 +52,7 @@ def loopArtists(rootDir: str, cb: Callable[[Artist], Optional[Union[list[Issue],
             sys.stdout.write('\033[K')
         # if i > 1:
         # return results
-        print(i, '/', len(artists), artist.name)
+        print(i, '/', len(artists), _artist.name)
     return results
 
 
@@ -62,6 +77,8 @@ def loopTracks(
         tracks = album.tracks
 
         for track in tracks:
+            if args.limit and Globals.count >= int(args.limit):
+                break
             if args.filter:
                 # TODO - dumb to do this here
                 filter = args.filter.lower()
@@ -74,7 +91,7 @@ def loopTracks(
                         break
                 if not found:
                     continue
-
+            Globals.count += 1
             if args.debug:
                 print(track.title)
             result = cb(artist, album, track)

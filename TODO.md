@@ -4,8 +4,15 @@
 
 ## Bugs
 
+- better flow for checkInfo command
+- better interface for search results
+- .name property or something for artists, albums, etc
 - 'ignore album/artist' options
+- ignore doesn't work for artist duplicates? - or anything??
+- track duplicates is sloooooow
+- better descriptions / CTAs for all commands
 - replace fancy ' with normal '
+- remix artist to artist tag
 - delete option?
 - concept of trackwise/albumwise/artistwise commands? - hacked this on yearConflicts
 - recognize pt. 1 / pt. 2 etc

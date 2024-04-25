@@ -31,9 +31,8 @@ class AlbumPath(ArtistPath):
 
     def buildPath(self):
         artistPath = super(AlbumPath, self).buildPath()
-
         if self.year:
-            albumPath = self.album + ' (' + str(self.year) + ')'
+            albumPath = self.album + ' (' + str(self.year)[0:4] + ')'
         else:
             albumPath = self.album
 

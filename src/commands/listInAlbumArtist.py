@@ -1,53 +1,38 @@
-import os
-from internal_types import Issue, Option
-from utils.tagging import (
-    getAlbumArtistTag,
-    setAlbumArtistTag,
-    getArtistTag,
-    setArtistTag,
-)
-from utils.userio import bold, promptHeader, confirm
-from utils.util import newFix, loopTracks, getInput
-from utils.path import (
-    stripRootPath,
-)
+from Command.Command import TrackCommand
+from Command.Issue import TrackIssue
+from Command.Option import Option
+from Entry.Album import Album
+from Entry.Artist import Artist
+from Entry.Track import Track
+from utils.userio import bold, confirm
+from utils.util import getInput
 
 
-def findListInAlbumArtist(rootDir: str) -> list[Issue]:
-    def cb(artist: os.DirEntry, album: os.DirEntry, track: os.DirEntry) -> list[Issue]:
-        found: list[Issue] = []
+class ListInAlbumArtist(TrackCommand):
+    edits = {}
 
-        tag = getAlbumArtistTag(track.path)
+    def detectIssue(self, artist: Artist, album: Album, track: Track):
+        tag = track.albumArtist
 
         if not tag or "," not in tag:
-            return []
+            return None
 
         artists = tag.split(", ")
 
-        found.append(
-            {
-                "entry": track,
-                "original": tag,
-                "delta": artists[0],
-                "data": " · ".join(artists[1:]),
-            }
+        return TrackIssue(
+                artist=artist,
+                album=album,
+                track=track,
+                original=tag,
+                delta=artists[0],
+                data=" · ".join(artists[1:]),
         )
-        return found
 
-    return loopTracks(rootDir, cb)
+    def callback(self, good: str, issue: TrackIssue) -> None:
+        track = issue.track
 
-
-def process(rootDir: str) -> int:
-    issues = findListInAlbumArtist(rootDir)
-    edits = {}
-
-    def cb(good: str, issue: Issue) -> None:
-        track = issue["entry"]
-
-        setAlbumArtistTag(track.path, good)
-
-        artistTag = getArtistTag(track.path) or ""
-        default = not issue["data"] or issue["data"] not in artistTag
+        artistTag = track.artist
+        default = not issue.data or issue.data not in artistTag
         shouldUpdateArtist = confirm(
             "Add featured artists to artist tag: " + bold(artistTag) + "?",
             default=default,
@@ -55,9 +40,9 @@ def process(rootDir: str) -> int:
         if not shouldUpdateArtist:
             return
 
-        newArtistTag = " · ".join([artistTag, (issue["data"] or "")])
+        newArtistTag = " · ".join([artistTag, (issue.data or "")])
 
-        existingEdit = newArtistTag in edits
+        existingEdit = newArtistTag in self.edits
 
         resp = confirm(
             "Does this look right? " + bold(newArtistTag), default=not existingEdit
@@ -65,35 +50,21 @@ def process(rootDir: str) -> int:
         if not resp:
             useExisting = (
                 confirm("Use existing correction " +
-                        edits[newArtistTag], default=True)
+                        self.edits[newArtistTag], default=True)
                 if existingEdit
                 else False
             )
             editedArtistTag = (
-                edits[newArtistTag]
+                self.edits[newArtistTag]
                 if useExisting
                 else getInput("Enter your correction")
             )
-            edits[newArtistTag] = editedArtistTag
-            setArtistTag(track.path, editedArtistTag)
+            self.edits[newArtistTag] = editedArtistTag
+            track.setArtist(editedArtistTag)
         else:
-            setArtistTag(track.path, newArtistTag)
+            track.setArtist(newArtistTag)
 
-    def heuristic(options: list[Option]) -> Option:
+        track.setAlbumArtist(good)
+
+    def heuristic(self, options: list[Option]) -> Option:
         return options[1]
-
-    def prompt(issue: Issue, index: int, count: int) -> str:
-        return (
-            promptHeader("listInAlbumArtist", index, count)
-            + "\n"
-            + "Artist list found in album artist tag at: "
-            + bold(stripRootPath(issue["entry"].path))
-        )
-
-    return newFix(
-        issues=issues,
-        callback=cb,
-        prompt=prompt,
-        heuristic=heuristic,
-        allowEdit=True,
-    )

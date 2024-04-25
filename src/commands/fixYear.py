@@ -1,18 +1,18 @@
 import os
 from Command.Command import Command
-from Command.Issue import Issue
+from Command.Issue import AlbumIssue
 from Command.Option import Option
 from Entry.Album import Album
 from Entry.Artist import Artist
+from Search.SearchService import SearchService
 from utils.util import loopAlbums
 from utils.constants import rootDir
-from tidal import tidal
 
 # TODO - don't detect on fuller dates
 # TODO - skip/resolve per album
 
 
-class YearIssue(Issue):
+class YearIssue(AlbumIssue):
     artist: Artist
     album: Album
     folderYear: str
@@ -64,9 +64,9 @@ class FixYear(Command):
             option = Option(key="NONE", display=issue.folderYear, value=issue.folderYear)
             suggestions.append(option)
 
-        results = tidal.searchAlbum(issue.album.path.album, issue.album.path.albumArtist)
+        results = SearchService.searchAlbum(issue.album)
         for result in results:
-            display = result.name  + " by " + result.artist.name + ": " + str(result.year)
+            display = result.album  + " by " + result.artist + ": " + str(result.year)
             option = Option(key="NONE", display=display, value=result.year)
             suggestions.append(option)
 

@@ -7,8 +7,10 @@ from Entry.Track import Track
 from utils.constants import args
 
 
-class SetCommand(TrackCommand):
+class SetTag(TrackCommand):
     def detectIssue(self, artist: Artist, album: Album, track: Track) -> Optional[TrackIssue]:
+        if not args.tag or not args.value:
+            return None
         tagValue = track[args.tag]
         if tagValue != args.value:
             return TrackIssue(artist=artist, album=album, track=track, original=tagValue, delta=args.value)
@@ -17,6 +19,5 @@ class SetCommand(TrackCommand):
         return options[1]
 
     def callback(self, good, issue: TrackIssue):
-        print(good, args.value)
         if good == args.value:
             issue.track[args.tag] = good

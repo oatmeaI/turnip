@@ -22,7 +22,7 @@ class Issue:
         self.artist = artist
 
     @property
-    def entry(self) -> Entry:
+    def entry(self) -> Optional[Entry]:
         return self.track or self.album or self.artist
 
     @property
@@ -67,10 +67,28 @@ class Issue:
 class ArtistIssue(Issue):
     artist: Artist
 
+    @property
+    def key(self):
+        artist = self.artist.path.albumArtist if self.artist else ''
+        delta = self.delta or ''
+        return self.original + delta + artist
+
 
 class AlbumIssue(ArtistIssue):
     album: Album
 
+    @property
+    def key(self):
+        album = self.album.path.album if self.album else ''
+        delta = self.delta or ''
+        return self.original + delta + album
+
 
 class TrackIssue(AlbumIssue):
     track: Track
+
+    @property
+    def key(self):
+        track = self.track.tags.title if self.track else ''
+        delta = self.delta or ''
+        return self.original + delta

@@ -1,4 +1,5 @@
 import os
+from typing import Any
 from Command.Option import Option
 
 
@@ -21,7 +22,7 @@ def confirm(prompt: str, default: bool) -> bool:
     return resp == "y"
 
 
-def chooseFromList(options: list[Option]) -> Option:
+def chooseFromList(options: list[Option]) -> Any:
     choices = {}
     i = 1
     for option in options:

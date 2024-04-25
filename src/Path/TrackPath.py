@@ -34,10 +34,11 @@ class TrackPath(AlbumPath):
 
         trackNumber = ''
         if self.trackNumber and int(self.trackNumber) > 0:
-            print(self.trackNumber)
             trackNumber = str(self.trackNumber) + ' - '
             if len(trackNumber) > 0 and int(self.trackNumber) < 10 and not trackNumber.startswith('0'):
                 trackNumber = '0' + trackNumber
+            if self.disc:
+                trackNumber = str(self.disc) + trackNumber
 
         discNumber = ''
         if self.disc and int(self.disc) > 0:
